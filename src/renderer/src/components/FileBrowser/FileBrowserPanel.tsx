@@ -336,7 +336,7 @@ export function FileBrowserPanel() {
     if (!trimmed || trimmed === node.name) return
     const newPath = joinPath(parentDir(node.path), trimmed)
     const result = await window.api.file.rename(node.path, newPath)
-    if (result.error) { alert(`Error: ${result.error}`); return }
+    if (result.error) { void window.api.dialog.alert('Error', result.error); return }
     // Keep any open tab pointing at the renamed file in sync.
     if (!node.isDir) updateRenamedBuffer(node.path, newPath)
     await refreshParent(node.path)
@@ -352,15 +352,20 @@ export function FileBrowserPanel() {
     const result = pending.kind === 'file'
       ? await window.api.file.create(fp)
       : await window.api.file.mkdir(fp)
-    if (result.error) { alert(`Error: ${result.error}`); return }
+    if (result.error) { void window.api.dialog.alert('Error', result.error); return }
     await refreshParent(fp)
     if (pending.kind === 'file') openFiles([fp])
   }, [creating, refreshParent, openFiles])
 
   const handleDelete = useCallback(async (node: TreeNode) => {
-    if (!confirm(`Delete "${node.name}"? This cannot be undone.`)) return
+    const ok = await window.api.dialog.confirm(
+      `Delete "${node.name}"?`,
+      'This cannot be undone.',
+      'Delete'
+    )
+    if (!ok) return
     const result = await window.api.file.delete(node.path)
-    if (result.error) { alert(`Error: ${result.error}`); return }
+    if (result.error) { void window.api.dialog.alert('Error', result.error); return }
     await refreshParent(node.path)
   }, [refreshParent])
 

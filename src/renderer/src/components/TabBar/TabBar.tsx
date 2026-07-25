@@ -17,7 +17,8 @@ import { detectPreviewKind } from '../../utils/previewKind'
 import { cn } from '../../lib/utils'
 
 interface TabBarProps {
-  onClose?: (id: string) => void
+  /** Async — dirty buffers show a modal confirm before closing. */
+  onClose?: (id: string) => void | Promise<void>
   onNewFile?: () => void
 }
 
@@ -117,12 +118,18 @@ export const TabBar: React.FC<TabBarProps> = ({ onClose, onNewFile }) => {
   }
 
   // --- Context menu actions ---
+  // Close sequentially: each dirty buffer raises its own modal confirm, and
+  // firing them all at once would stack N native dialogs on top of each other.
+  const closeSequentially = async (ids: string[]) => {
+    for (const id of ids) await onClose?.(id)
+  }
+
   const closeOthers = (id: string) => {
-    buffers.filter((b) => b.id !== id).forEach((b) => onClose?.(b.id))
+    void closeSequentially(buffers.filter((b) => b.id !== id).map((b) => b.id))
   }
 
   const closeAll = () => {
-    buffers.forEach((b) => onClose?.(b.id))
+    void closeSequentially(buffers.map((b) => b.id))
   }
 
   const copyPath = (id: string) => {

@@ -55,6 +55,15 @@ interface ElectronAPI {
     pathForFile: (file: File) => string
   }
 
+  /**
+   * Modal prompts served by the main process. Always use these instead of the
+   * renderer's window.confirm()/alert(), which freeze Monaco permanently.
+   */
+  dialog: {
+    confirm: (message: string, detail?: string, confirmLabel?: string) => Promise<boolean>
+    alert: (message: string, detail?: string) => Promise<void>
+  }
+
   config: {
     getDir: () => Promise<string>
     read: (name: string) => Promise<unknown>

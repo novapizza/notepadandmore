@@ -116,6 +116,19 @@ export default function App() {
   // but matching keeps the initial layout stable).
   const editorContentSize = splitVisible && previewVisible ? 40 : splitVisible || previewVisible ? 55 : 100
   const { openFiles, openRemoteFile, openInlineContent, newFile, saveBuffer, saveActiveAs, closeBuffer, reloadBuffer, loadBuffer, restoreSession } = useFileOps()
+  // Close every tab one at a time. closeBuffer raises a modal confirm per dirty
+  // buffer, so closing them in parallel would stack N native dialogs at once.
+  const closeAllBuffers = useCallback(async () => {
+    for (const b of useEditorStore.getState().buffers) await closeBuffer(b.id)
+  }, [closeBuffer])
+  // Save every dirty tab one at a time. saveBuffer raises a native Save As
+  // dialog for each untitled buffer, so saving them in parallel would stack N
+  // dialogs at once — same reason closeAllBuffers is sequential.
+  const saveAllBuffers = useCallback(async () => {
+    for (const b of useEditorStore.getState().buffers) {
+      if (b.isDirty) await saveBuffer(b.id)
+    }
+  }, [saveBuffer])
   // Mount window-level keyboard (Alt+Left/Right or Ctrl+-) and mouse
   // back/forward button listeners that drive navigation history.
   useNavigationShortcuts()
@@ -265,16 +278,14 @@ export default function App() {
     })
     window.api.on('menu:file-save-as', () => saveActiveAs())
     window.api.on('menu:file-save-all', () => {
-      useEditorStore.getState().buffers.forEach((b) => {
-        if (b.isDirty) saveBuffer(b.id)
-      })
+      void saveAllBuffers()
     })
     window.api.on('menu:file-close', () => {
       const id = useEditorStore.getState().activeId
-      if (id) closeBuffer(id)
+      if (id) void closeBuffer(id)
     })
     window.api.on('menu:file-close-all', () => {
-      useEditorStore.getState().buffers.forEach((b) => closeBuffer(b.id))
+      void closeAllBuffers()
     })
     window.api.on('menu:file-reload', () => {
       const id = useEditorStore.getState().activeId
@@ -432,7 +443,12 @@ export default function App() {
       const dirty = useEditorStore.getState().buffers.filter((b) => b.isDirty)
       if (dirty.length > 0 && !remember) {
         const names = dirty.map((b) => b.title).join(', ')
-        if (!confirm(`Unsaved changes in: ${names}\n\nClose without saving?`)) {
+        const ok = await window.api.dialog.confirm(
+          'Close without saving?',
+          `Unsaved changes in: ${names}`,
+          'Close without saving'
+        )
+        if (!ok) {
           window.api.send('app:close-cancelled')
           return
         }
@@ -607,9 +623,9 @@ export default function App() {
         }}
         onSave={() => { const id = useEditorStore.getState().activeId; if (id) saveBuffer(id) }}
         onSaveAs={() => saveActiveAs()}
-        onSaveAll={() => useEditorStore.getState().buffers.forEach((b) => { if (b.isDirty) saveBuffer(b.id) })}
-        onClose={() => { const id = useEditorStore.getState().activeId; if (id) closeBuffer(id) }}
-        onCloseAll={() => useEditorStore.getState().buffers.forEach((b) => closeBuffer(b.id))}
+        onSaveAll={() => void saveAllBuffers()}
+        onClose={() => { const id = useEditorStore.getState().activeId; if (id) void closeBuffer(id) }}
+        onCloseAll={() => void closeAllBuffers()}
         onFind={() => openFind('find')}
         onReplace={() => openFind('replace')}
         onFindInFiles={() => openFind('findInFiles')}
@@ -630,10 +646,10 @@ export default function App() {
           onNew={newFile}
           onOpen={handleOpenFile}
           onSave={() => { const id = useEditorStore.getState().activeId; if (id) saveBuffer(id) }}
-          onSaveAll={() => useEditorStore.getState().buffers.forEach((b) => { if (b.isDirty) saveBuffer(b.id) })}
+          onSaveAll={() => void saveAllBuffers()}
           onFind={() => openFind('find')}
           onReplace={() => openFind('replace')}
-          onClose={() => { const id = useEditorStore.getState().activeId; if (id) closeBuffer(id) }}
+          onClose={() => { const id = useEditorStore.getState().activeId; if (id) void closeBuffer(id) }}
         />
       )}
 

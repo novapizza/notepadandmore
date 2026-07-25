@@ -472,11 +472,19 @@ export function useFileOps() {
     return true
   }, [getActive, updateBuffer, addToast])
 
-  const closeBuffer = useCallback((id: string) => {
+  const closeBuffer = useCallback(async (id: string) => {
     const buf = useEditorStore.getState().getBuffer(id)
     if (!buf) return
     if (buf.isDirty) {
-      if (!confirm(`'${buf.title}' has unsaved changes. Close anyway?`)) return
+      const ok = await window.api.dialog.confirm(
+        `'${buf.title}' has unsaved changes.`,
+        'Your changes will be lost if you close without saving.',
+        'Close anyway'
+      )
+      if (!ok) return
+      // The buffer may have been closed or saved while the modal was up.
+      const fresh = useEditorStore.getState().getBuffer(id)
+      if (!fresh) return
     }
     if (buf.filePath) window.api.watch.remove(buf.filePath)
     removeBuffer(id)

@@ -99,6 +99,47 @@ export function registerFileHandlers(): void {
     return result
   })
 
+  // Modal confirm / alert, run from the MAIN process.
+  //
+  // Never use the renderer's window.confirm()/alert() for these. Those spin a
+  // nested message loop inside the renderer, which wedges Monaco's
+  // animation-frame render scheduler: after the dialog closes the editor stops
+  // painting and stops accepting keystrokes for the rest of the session, even
+  // though React keeps re-rendering around it (the tab bar still responds).
+  // dialog.showMessageBox runs in main and leaves the renderer's loop alive.
+  ipcMain.handle(
+    'dialog:confirm',
+    async (event, message: string, detail?: string, confirmLabel?: string) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      const options: Electron.MessageBoxOptions = {
+        type: 'warning',
+        buttons: [confirmLabel || 'OK', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+        message,
+        ...(detail ? { detail } : {})
+      }
+      const { response } = win
+        ? await dialog.showMessageBox(win, options)
+        : await dialog.showMessageBox(options)
+      return response === 0
+    }
+  )
+
+  ipcMain.handle('dialog:alert', async (event, message: string, detail?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.MessageBoxOptions = {
+      type: 'error',
+      buttons: ['OK'],
+      noLink: true,
+      message,
+      ...(detail ? { detail } : {})
+    }
+    if (win) await dialog.showMessageBox(win, options)
+    else await dialog.showMessageBox(options)
+  })
+
   // Check if file was modified externally
   ipcMain.handle('file:check-mtime', async (_event, filePath: string, knownMtime: number) => {
     try {

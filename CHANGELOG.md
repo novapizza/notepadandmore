@@ -10,6 +10,17 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+### Fixed
+- **The editor no longer freezes after a confirmation prompt.** Every confirm/alert prompt (closing
+  an unsaved tab, quitting with unsaved changes, deleting a file, switching workspace, uninstalling
+  a plugin) is now a native OS dialog served by the main process. These previously used the
+  renderer's `window.confirm()`/`alert()`, which stalled the editor's render scheduler — once the
+  prompt was dismissed the editor stopped painting and ignored all keystrokes for the rest of the
+  session, even though the tab bar kept responding.
+- **Bulk actions prompt one file at a time.** *Close All*, *Close Others* and *Save All* now wait for
+  each prompt before raising the next. Previously they fired every dialog at once, stacking N native
+  windows on top of each other with no way to tell which file each one referred to.
+
 ## [1.5.9]
 
 ### Added

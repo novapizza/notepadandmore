@@ -41,6 +41,18 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ),
     highlights: [
       {
+        title: 'No more frozen editor after a confirmation prompt',
+        body: (
+          <>
+            Confirmation prompts — closing an unsaved tab, quitting with unsaved changes, deleting a file,
+            switching workspace, uninstalling a plugin — are now proper <strong>native dialogs</strong>.
+            Previously, dismissing one could leave the editor unable to paint or accept keystrokes until you
+            restarted the app. <em>Close All</em>, <em>Close Others</em> and <em>Save All</em> also ask about one
+            file at a time now, instead of stacking every prompt on top of each other.
+          </>
+        )
+      },
+      {
         title: 'Find & Replace focus and overlay fixes',
         body: (
           <>

@@ -60,11 +60,12 @@ export function useFileDrop(openFiles: (paths: string[]) => Promise<void>): { dr
       const current = ui.workspaceFolder
       if (current && current !== newFolder) {
         const dirty = useEditorStore.getState().buffers.filter((b) => b.isDirty).length
-        const msg =
-          dirty > 0
-            ? `Switch workspace to:\n${newFolder}\n\n${dirty} unsaved file(s) will remain open. Continue?`
-            : `Switch workspace to:\n${newFolder}?`
-        if (!confirm(msg)) return
+        const ok = await window.api.dialog.confirm(
+          `Switch workspace to:\n${newFolder}?`,
+          dirty > 0 ? `${dirty} unsaved file(s) will remain open.` : undefined,
+          'Switch'
+        )
+        if (!ok) return
       }
       ui.setWorkspaceFolder(newFolder)
       ui.setShowSidebar(true)

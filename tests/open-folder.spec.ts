@@ -1,7 +1,7 @@
 // spec: specs/open-folder.md
 // seed: tests/phase5-sidebar-panels.spec.ts
 
-import { test as base, expect } from './fixtures'
+import { test as base, expect, stubConfirmDialog } from './fixtures'
 import { _electron as electron, ElectronApplication } from 'playwright'
 import path from 'path'
 import os from 'os'
@@ -21,6 +21,13 @@ const test = base.extend<{ electronApp: ElectronApplication }>({
   page: async ({ electronApp }, use) => {
     const page = await electronApp.firstWindow()
     await page.waitForSelector('[data-testid="app"]', { timeout: 10_000 })
+    // Seed an untitled buffer. E2E mode skips session restore, so without this
+    // there are no buffers, the WelcomeScreen renders instead of the editor,
+    // and the Monaco/tabbar waits below never resolve.
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win) win.webContents.send('menu:file-new')
+    })
     await page.waitForSelector('.monaco-editor textarea', { timeout: 10_000 })
     await page.waitForSelector('[data-testid="tabbar"] [data-tab-title]', { timeout: 5_000 })
     await use(page)
@@ -35,6 +42,11 @@ async function sendIPC(electronApp: ElectronApplication, channel: string, ...arg
     { ch: channel, a: args }
   )
 }
+
+// File-tree context menu items are Radix ContextMenuItems rendered into a
+// portal at the document root — they are NOT inside [data-testid="sidebar"].
+const menuItem = (page: import('playwright').Page, name: string) =>
+  page.getByRole('menuitem', { name })
 
 // ─── Group A: Happy-Path Scenarios ──────────────────────────────────────────
 
@@ -841,13 +853,15 @@ test.describe('Open Folder Feature', () => {
         const sidebar = page.locator('[data-testid="sidebar"]')
         await expect(sidebar.getByText('delete-me.txt')).toBeVisible({ timeout: 3_000 })
 
-        // Stub window.confirm to return true (Electron may not fire Playwright dialog events for confirm())
-        await page.evaluate(() => { (window as any).confirm = () => true })
+        // Auto-confirm: the prompt is a native main-process message box, which
+        // Playwright can neither see nor dismiss from the renderer.
+        await stubConfirmDialog(electronApp, 'confirm')
 
-        // 2. Right-click and click "Delete"
+        // 2. Right-click and click "Delete". The context menu is a Radix
+        // portal rendered outside the sidebar, so scope the lookup to the page.
         await sidebar.getByText('delete-me.txt').click({ button: 'right' })
-        await expect(sidebar.getByRole('button', { name: 'Delete' })).toBeVisible({ timeout: 2_000 })
-        await sidebar.getByRole('button', { name: 'Delete' }).click()
+        await expect(menuItem(page, 'Delete')).toBeVisible({ timeout: 2_000 })
+        await menuItem(page, 'Delete').click()
 
         // 3. Assert delete-me.txt NOT visible. Assert file does not exist on disk.
         await expect(sidebar.getByText('delete-me.txt')).not.toBeVisible({ timeout: 3_000 })
@@ -871,13 +885,13 @@ test.describe('Open Folder Feature', () => {
         const sidebar = page.locator('[data-testid="sidebar"]')
         await expect(sidebar.getByText('keep-me.txt')).toBeVisible({ timeout: 3_000 })
 
-        // Stub window.confirm to return false (cancel), so deletion is aborted
-        await page.evaluate(() => { (window as any).confirm = () => false })
+        // Answer the native confirm with Cancel, so deletion is aborted
+        await stubConfirmDialog(electronApp, 'cancel')
 
-        // 2. Right-click and click "Delete"
+        // 2. Right-click and click "Delete" (context menu is a portal — see F-4)
         await sidebar.getByText('keep-me.txt').click({ button: 'right' })
-        await expect(sidebar.getByText('Delete')).toBeVisible({ timeout: 2_000 })
-        await sidebar.getByText('Delete').click()
+        await expect(menuItem(page, 'Delete')).toBeVisible({ timeout: 2_000 })
+        await menuItem(page, 'Delete').click()
         await page.waitForTimeout(300)
 
         // 3. Assert keep-me.txt still visible. Assert file still on disk.

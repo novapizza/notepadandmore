@@ -2,7 +2,7 @@
 // "externally deleted" notification (the file watcher's unlink is our own).
 // seed: tests/open-folder.spec.ts
 
-import { test as base, expect } from './fixtures'
+import { test as base, expect, stubConfirmDialog } from './fixtures'
 import { _electron as electron, ElectronApplication } from 'playwright'
 import path from 'path'
 import os from 'os'
@@ -96,8 +96,9 @@ test.describe('File-tree action notifications', () => {
       await sidebar.getByText('doomed.txt').click()
       await page.locator('[data-tab-title="doomed.txt"]').waitFor({ state: 'visible', timeout: 5_000 })
 
-      // Confirm the delete (Electron confirm() works; stub to be deterministic).
-      await page.evaluate(() => { (window as any).confirm = () => true })
+      // Auto-confirm the delete. The prompt is a native main-process message
+      // box, so it must be stubbed there — not via window.confirm.
+      await stubConfirmDialog(electronApp, 'confirm')
 
       await sidebar.getByText('doomed.txt').click({ button: 'right' })
       await menuItem(page, 'Delete').click()

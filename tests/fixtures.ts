@@ -34,6 +34,29 @@ async function seedInitialBuffer(app: ElectronApplication): Promise<void> {
   })
 }
 
+/**
+ * Force the app's modal confirms to a fixed answer for the rest of the test.
+ *
+ * Renderer confirm/alert prompts are served by `dialog.showMessageBox` in the
+ * MAIN process (see `src/main/ipc/fileHandlers.ts`) — the renderer's
+ * `window.confirm()` is deliberately unused because it wedges Monaco's render
+ * loop. Playwright cannot dismiss a native modal and does not fire `dialog`
+ * events for it, so tests must stub the main-process call. Stubbing
+ * `window.confirm` in the renderer intercepts nothing and leaves the real
+ * dialog up, hanging the test.
+ *
+ * `dialog:confirm` treats button 0 as confirm and `cancelId: 1` as cancel.
+ */
+export async function stubConfirmDialog(
+  app: ElectronApplication,
+  answer: 'confirm' | 'cancel'
+): Promise<void> {
+  await app.evaluate(async ({ dialog }, response) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(dialog as any).showMessageBox = async () => ({ response, checkboxChecked: false })
+  }, answer === 'confirm' ? 0 : 1)
+}
+
 export const test = base.extend<AppFixtures>({
   page: async ({}, use) => {
     const app = await electron.launch({

@@ -45,6 +45,18 @@ const api = {
     pathForFile: (file: File): string => webUtils.getPathForFile(file)
   },
 
+  // Modal prompts. These run in the main process on purpose — the renderer's
+  // built-in window.confirm()/alert() block its message loop and leave Monaco
+  // permanently frozen after the dialog closes.
+  dialog: {
+    /** Yes/No prompt. Resolves true when the user picks the confirm button. */
+    confirm: (message: string, detail?: string, confirmLabel?: string): Promise<boolean> =>
+      ipcRenderer.invoke('dialog:confirm', message, detail, confirmLabel),
+    /** Informational prompt with a single OK button. */
+    alert: (message: string, detail?: string): Promise<void> =>
+      ipcRenderer.invoke('dialog:alert', message, detail)
+  },
+
   // Config operations
   config: {
     getDir: () => ipcRenderer.invoke('config:get-dir'),

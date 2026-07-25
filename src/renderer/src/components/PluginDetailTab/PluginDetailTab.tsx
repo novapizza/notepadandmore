@@ -44,7 +44,12 @@ export function PluginDetailTab({ pluginId }: { pluginId: string }) {
   }
 
   const handleUninstall = async () => {
-    if (!confirm(`Uninstall plugin "${pluginId}"? This will remove all plugin files.`)) return
+    const ok = await window.api.dialog.confirm(
+      `Uninstall plugin "${pluginId}"?`,
+      'This will remove all plugin files.',
+      'Uninstall'
+    )
+    if (!ok) return
     setPendingAction(true)
     try {
       await uninstallPlugin(pluginId)
