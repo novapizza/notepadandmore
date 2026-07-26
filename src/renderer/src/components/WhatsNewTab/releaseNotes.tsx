@@ -32,11 +32,11 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.5.9',
+    version: '1.6.0',
     summary: (
       <>
-        An optional <strong>AI assistant</strong> you can point at the open document, plus a quality pass on{' '}
-        <strong>Find &amp; Replace</strong> — it no longer loses editor focus or hides behind other panels.
+        An optional <strong>AI assistant</strong> you can point at the open document — ask questions,
+        transform text, or generate a regex — plus a fix for the editor freezing after a confirmation prompt.
       </>
     ),
     highlights: [
@@ -69,7 +69,18 @@ export const RELEASE_NOTES: ReleaseNote[] = [
             file at a time now, instead of stacking every prompt on top of each other.
           </>
         )
-      },
+      }
+    ]
+  },
+  {
+    version: '1.5.9',
+    summary: (
+      <>
+        A quality pass on <strong>Find &amp; Replace</strong> — it no longer loses editor focus or hides
+        behind other panels — plus an option to stop the editor from auto-enabling Word Wrap on long lines.
+      </>
+    ),
+    highlights: [
       {
         title: 'Find & Replace focus and overlay fixes',
         body: (

@@ -1,7 +1,7 @@
 {
   "name": "NovaPad",
   "productName": "NovaPad",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "description": "A lightweight, fast, and modern text editor for Windows, macOS.",
   "main": "out/main/index.js",
   "packageManager": "pnpm@9.15.0",

@@ -10,6 +10,8 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+## [1.6.0]
+
 ### Added
 - **AI Assistant (optional, off by default).** Register a Google Gemini API key in
   *Settings ▸ AI Assistant* and a Gemini badge appears at the bottom-right of the editor; clicking it
@@ -103,6 +105,7 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 - **Settings page reset its selected category** when you switched to another tab and back — the
   active category is now preserved.
 
-[Unreleased]: https://github.com/novapizza/novapad/compare/v1.5.9...HEAD
+[Unreleased]: https://github.com/novapizza/novapad/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/novapizza/novapad/compare/v1.5.9...v1.6.0
 [1.5.9]: https://github.com/novapizza/novapad/compare/v1.5.8...v1.5.9
 [1.5.8]: https://github.com/novapizza/novapad/releases/tag/v1.5.8
