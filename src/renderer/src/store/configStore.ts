@@ -54,6 +54,24 @@ export interface AppConfig {
   /** Keyboard-shortcut overrides keyed by command id (see shortcutCatalog).
    *  Absent entries fall back to the catalog default. */
   shortcuts: Record<string, string>
+
+  // AI Assistant
+  // NOTE: the API key is NOT here. It lives encrypted via Electron safeStorage in
+  // userData/config/ai-credentials.enc and is only ever handled in the main
+  // process — see src/main/ai/credentials.ts. Never add a key field to this file:
+  // config.json is plaintext and gets copied around in bug reports.
+  /** Master switch. Off by default — nothing is sent anywhere until the user opts in. */
+  aiEnabled: boolean
+  /** Provider id from src/main/ai/gemini.ts PROVIDERS. */
+  aiProvider: string
+  aiModel: string
+  /** Show the floating provider badge at the bottom-right of the editor. */
+  aiShowBadge: boolean
+  /** What document context accompanies a prompt by default.
+   *  'auto' = selection when one exists, otherwise the whole document. */
+  aiDefaultContext: 'auto' | 'selection' | 'document' | 'none'
+  /** Upper bound on characters of document text sent per request. */
+  aiMaxContextChars: number
 }
 
 export const CONFIG_DEFAULTS: AppConfig = {
@@ -87,7 +105,13 @@ export const CONFIG_DEFAULTS: AppConfig = {
   snapshotIntervalMs: 7000,
   lastSeenVersion: null,
   windowZoomLevel: 0,
-  shortcuts: {}
+  shortcuts: {},
+  aiEnabled: false,
+  aiProvider: 'gemini',
+  aiModel: 'gemini-3.5-flash',
+  aiShowBadge: true,
+  aiDefaultContext: 'auto',
+  aiMaxContextChars: 200000
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null

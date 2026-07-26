@@ -521,6 +521,15 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
             { label: 'UUID Generator', click: () => win.webContents.send('menu:tools-open', 'uuid') },
             { label: 'Lorem Ipsum', click: () => win.webContents.send('menu:tools-open', 'lorem') }
           ]
+        },
+        { type: 'separator' as const },
+        {
+          // Ctrl/Cmd+Shift+A, not +I — Electron reserves +I for DevTools. The
+          // renderer also binds this in the capture phase, since the accelerator
+          // alone gets swallowed while Monaco has focus.
+          label: 'AI Assistant',
+          accelerator: 'CmdOrCtrl+Shift+A',
+          click: () => win.webContents.send('menu:ai-assistant')
         }
       ]
     },

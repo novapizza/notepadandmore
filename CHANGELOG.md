@@ -10,6 +10,30 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+### Added
+- **AI Assistant (optional, off by default).** Register a Google Gemini API key in
+  *Settings ▸ AI Assistant* and a Gemini badge appears at the bottom-right of the editor; clicking it
+  (or `Ctrl/Cmd+Shift+A`, or *Tools ▸ AI Assistant*) opens a resizable chat panel docked beside the
+  document. Ask questions about the open file, or use the quick actions to summarize, explain, remove
+  duplicates, sort, clean up whitespace, convert between formats, or generate a regex.
+- **AI edits are always reviewed before they land.** Any action that rewrites text produces a diff with
+  *Apply* / *Discard* / *Open in new tab* rather than writing into the buffer. Applying is a single
+  `Ctrl+Z` to undo, and an edit generated against a document you have since changed is refused instead
+  of overwriting it.
+- **"Build a regex" feeds Find & Replace** instead of rewriting the document — the generated pattern
+  opens in the existing Find & Replace dialog.
+- **The chat states what it sends, every turn.** A context chip above the input names the exact scope
+  (selection or whole file), line count, and size before you press Send, and you can switch scope or
+  send no document context at all. The file name and language are included; the full path is not.
+  Files over the large-file threshold are restricted to an explicit selection.
+- **API keys are stored in the OS credential store** (`safeStorage` — Keychain / DPAPI / libsecret),
+  never in `config.json`. The key is handled only by the main process and is never readable from the
+  editor UI; Settings shows just a last-4 hint plus *Replace* / *Remove*. A **Test connection** button
+  validates the key and lists the models it can actually use. On systems with no credential store
+  available, NovaPad refuses to store a key rather than writing a weakly-protected one.
+- Conversations are kept in memory per tab and discarded when NovaPad closes, so document excerpts are
+  never written to a second location on disk.
+
 ### Fixed
 - **The editor no longer freezes after a confirmation prompt.** Every confirm/alert prompt (closing
   an unsaved tab, quitting with unsaved changes, deleting a file, switching workspace, uninstalling

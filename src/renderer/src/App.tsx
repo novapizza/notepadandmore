@@ -41,6 +41,9 @@ const CompareOverlay = lazy(() =>
 const TransformOverlay = lazy(() =>
   import('./components/Transform/TransformOverlay').then((m) => ({ default: m.TransformOverlay }))
 )
+// Chat panel is lazy for the same reason as the previews: users who never turn
+// the assistant on shouldn't pay for react-markdown + the diff editor wiring.
+const AiChatPanel = lazy(() => import('./components/AiAssistant/AiChatPanel'))
 
 import { detectPreviewKind } from './utils/previewKind'
 import { applyTheme } from './utils/themes'
@@ -49,6 +52,8 @@ import { useEditorStore } from './store/editorStore'
 import { useUIStore } from './store/uiStore'
 import { usePluginStore } from './store/pluginStore'
 import { useConfigStore } from './store/configStore'
+import { useAiStore } from './store/aiStore'
+import { AiBadge } from './components/AiAssistant/AiBadge'
 import { useFileOps, SessionData } from './hooks/useFileOps'
 import { useFileDrop } from './hooks/useFileDrop'
 import { useNavigationShortcuts } from './hooks/useNavigation'
@@ -94,6 +99,49 @@ export default function App() {
     document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
     return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [])
+
+  // AI assistant streaming. Subscribed once here rather than in the panel so
+  // chunks keep landing in the transcript even if the user closes the panel
+  // mid-answer. Every payload carries the requestId; aiStore drops anything that
+  // doesn't match the turn it's currently expecting.
+  useEffect(() => {
+    const ai = useAiStore.getState()
+    const offChunk = window.api.on('ai:stream-chunk', (...args) => {
+      const p = args[0] as { requestId: string; text: string }
+      ai.onChunk(p.requestId, p.text)
+    })
+    const offDone = window.api.on('ai:stream-done', (...args) => {
+      const p = args[0] as { requestId: string; canceled?: boolean; truncated?: boolean }
+      ai.onDone(p.requestId, { canceled: p.canceled, truncated: p.truncated })
+    })
+    const offError = window.api.on('ai:stream-error', (...args) => {
+      const p = args[0] as { requestId: string; error: string }
+      ai.onError(p.requestId, p.error)
+    })
+    return () => {
+      offChunk()
+      offDone()
+      offError()
+    }
+  }, [])
+
+  // Toggle the assistant from the keyboard. Handled in the capture phase for the
+  // same reason as Quick Open: a native menu accelerator alone gets swallowed
+  // while Monaco has focus. Mod+Shift+A rather than Mod+Shift+I, which Electron
+  // reserves for DevTools.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = window.api.platform === 'darwin' ? e.metaKey : e.ctrlKey
+      if (mod && e.shiftKey && !e.altKey && (e.key === 'a' || e.key === 'A')) {
+        if (!useConfigStore.getState().aiEnabled) return
+        e.preventDefault()
+        e.stopPropagation()
+        useAiStore.getState().togglePanel()
+      }
+    }
+    document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
+  }, [])
   // The right-side preview pane renders when the user toggled showPreview AND
   // the active buffer's type is one we know how to preview. The pane
   // component is decided per-buffer so switching tabs swaps the preview.
@@ -111,10 +159,21 @@ export default function App() {
   // Split View: a second editor mirroring the active file buffer. Suppressed
   // for virtual tabs (settings/plugins) and while a preview is fullscreen.
   const splitVisible = splitView && activeKind === 'file' && !!activeId && !previewFullscreen
+  // AI assistant. The badge and the docked panel both require the feature to be
+  // enabled and a real file tab to be active — there is nothing to ask about on
+  // a Settings or Plugin Manager tab.
+  const aiEnabled = useConfigStore((s) => s.aiEnabled)
+  const aiShowBadge = useConfigStore((s) => s.aiShowBadge)
+  const aiPanelOpen = useAiStore((s) => s.panelOpen)
+  const aiAvailable = aiEnabled && activeKind === 'file' && !!activeId
+  const aiPanelVisible = aiAvailable && aiPanelOpen && !previewFullscreen
+  const aiBadgeVisible = aiAvailable && aiShowBadge && !previewFullscreen && !previewInlineVisible
   // Distribute the editor row across however many panes are showing so the
-  // three defaultSizes always sum to 100 (react-resizable-panels normalizes,
-  // but matching keeps the initial layout stable).
-  const editorContentSize = splitVisible && previewVisible ? 40 : splitVisible || previewVisible ? 55 : 100
+  // defaultSizes sum to 100 (react-resizable-panels normalizes anyway, but
+  // matching keeps the initial layout stable).
+  const editorPaneCount = 1 + (splitVisible ? 1 : 0) + (previewVisible ? 1 : 0) + (aiPanelVisible ? 1 : 0)
+  const editorContentSize = editorPaneCount === 1 ? 100 : editorPaneCount === 2 ? 55 : editorPaneCount === 3 ? 40 : 34
+  const sidePaneSize = Math.round((100 - editorContentSize) / Math.max(1, editorPaneCount - 1))
   const { openFiles, openRemoteFile, openInlineContent, newFile, saveBuffer, saveActiveAs, closeBuffer, reloadBuffer, loadBuffer, restoreSession } = useFileOps()
   // Close every tab one at a time. closeBuffer raises a modal confirm per dirty
   // buffer, so closing them in parallel would stack N native dialogs at once.
@@ -341,6 +400,16 @@ export default function App() {
       if (verb === 'files') void hashFromFiles(algo)
       else if (verb === 'selection') void hashSelectionToClipboard(algo)
       else openHashGenerator(algo)
+    })
+    window.api.on('menu:ai-assistant',       () => {
+      // Nudge the user to Settings instead of silently doing nothing when the
+      // feature is still off.
+      if (!useConfigStore.getState().aiEnabled) {
+        useUIStore.getState().setPendingSettingsCategory('ai')
+        useEditorStore.getState().openVirtualTab('settings')
+        return
+      }
+      useAiStore.getState().togglePanel()
     })
     window.api.on('menu:check-for-updates',  () => { void window.api.update.check() })
     window.api.on('plugin:state-changed', () => {
@@ -726,6 +795,10 @@ export default function App() {
                                 </Suspense>
                               </div>
                             )}
+                            {/* Floating provider badge — inside the editor's
+                                relative wrapper so it tracks the pane as the
+                                sidebar/preview/split resize it. */}
+                            {aiBadgeVisible && <AiBadge />}
                           </>
                         )}
                       </div>
@@ -737,7 +810,7 @@ export default function App() {
                         id="split-editor-resize"
                         className="w-1 bg-border cursor-col-resize shrink-0 transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary"
                       />
-                      <Panel id="split-editor-pane" order={2} defaultSize={previewVisible ? 30 : 45} minSize={15}>
+                      <Panel id="split-editor-pane" order={2} defaultSize={sidePaneSize} minSize={15}>
                         <SplitEditorPane />
                       </Panel>
                     </>
@@ -748,7 +821,7 @@ export default function App() {
                         id="md-preview-resize"
                         className="w-1 bg-border cursor-col-resize shrink-0 transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary"
                       />
-                      <Panel id="preview-pane" order={3} defaultSize={splitVisible ? 30 : 45} minSize={20}>
+                      <Panel id="preview-pane" order={3} defaultSize={sidePaneSize} minSize={20}>
                         <Suspense fallback={
                           <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
                             Loading preview…
@@ -758,6 +831,23 @@ export default function App() {
                           {previewKind === 'sqlplan' && <SqlPlanPreviewPane />}
                           {previewKind === 'csv' && <TableLensPreviewPane />}
                           {previewKind === 'json' && <JsonPreviewPane />}
+                        </Suspense>
+                      </Panel>
+                    </>
+                  )}
+                  {aiPanelVisible && (
+                    <>
+                      <PanelResizeHandle
+                        id="ai-chat-resize"
+                        className="w-1 bg-border cursor-col-resize shrink-0 transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary"
+                      />
+                      <Panel id="ai-chat-pane" order={4} defaultSize={sidePaneSize} minSize={18}>
+                        <Suspense fallback={
+                          <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                            Loading assistant…
+                          </div>
+                        }>
+                          <AiChatPanel />
                         </Suspense>
                       </Panel>
                     </>

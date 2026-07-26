@@ -122,6 +122,25 @@ const api = {
     document: (html: string) => ipcRenderer.invoke('print:document', { html })
   },
 
+  // AI assistant. All provider HTTP happens in the main process — the renderer's
+  // CSP blocks it, on purpose. Note there is deliberately NO getKey: the
+  // plaintext API key never crosses this bridge in either direction. `status()`
+  // returns only { available, hasKey, hint } with the hint computed in main.
+  ai: {
+    /** Encryption availability + whether a key is stored + last-4 hint. */
+    status: (provider: string) => ipcRenderer.invoke('ai:status', provider),
+    /** Store an API key (encrypted via safeStorage). Returns { error }. */
+    setKey: (provider: string, key: string) => ipcRenderer.invoke('ai:set-key', provider, key),
+    clearKey: (provider: string) => ipcRenderer.invoke('ai:clear-key', provider),
+    providers: () => ipcRenderer.invoke('ai:providers'),
+    /** Validate the stored key and list usable models. Returns { ok, models, error }. */
+    test: (provider: string) => ipcRenderer.invoke('ai:test', provider),
+    /** Begin a streamed completion. Returns { requestId, error }; chunks arrive
+     *  on 'ai:stream-chunk' / 'ai:stream-done' / 'ai:stream-error'. */
+    send: (provider: string, request: object) => ipcRenderer.invoke('ai:send', provider, request),
+    cancel: (requestId: string) => ipcRenderer.invoke('ai:cancel', requestId)
+  },
+
   // App-level metadata
   app: {
     /** Reliable app version from app.getVersion() (preferred over the legacy appVersion constant). */
@@ -161,6 +180,8 @@ const api = {
       'menu:whats-new-open',
       'menu:plugin-manager', 'menu:about',
       'menu:tools-open', 'menu:tools-hash',
+      'menu:ai-assistant',
+      'ai:stream-chunk', 'ai:stream-done', 'ai:stream-error',
       'editor:command', 'editor:set-option', 'editor:set-language',
       'editor:set-encoding', 'editor:set-eol', 'editor:set-eol-marker',
       'ui:toggle-toolbar', 'ui:toggle-statusbar', 'ui:toggle-sidebar',
@@ -193,6 +214,8 @@ const api = {
       'menu:whats-new-open',
       'menu:plugin-manager', 'menu:about',
       'menu:tools-open', 'menu:tools-hash',
+      'menu:ai-assistant',
+      'ai:stream-chunk', 'ai:stream-done', 'ai:stream-error',
       'editor:command', 'editor:set-option', 'editor:set-language',
       'editor:set-encoding', 'editor:set-eol', 'editor:set-eol-marker',
       'ui:toggle-toolbar', 'ui:toggle-statusbar', 'ui:toggle-sidebar',

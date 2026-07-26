@@ -35,11 +35,29 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     version: '1.5.9',
     summary: (
       <>
-        A quality pass on <strong>Find &amp; Replace</strong> — it no longer loses editor focus or hides
-        behind other panels — plus an option to stop the editor from auto-enabling Word Wrap on long lines.
+        An optional <strong>AI assistant</strong> you can point at the open document, plus a quality pass on{' '}
+        <strong>Find &amp; Replace</strong> — it no longer loses editor focus or hides behind other panels.
       </>
     ),
     highlights: [
+      {
+        title: 'Ask Gemini about the open document',
+        body: (
+          <>
+            Add a Google Gemini API key in <strong>Settings ▸ AI Assistant</strong> and a badge appears at the
+            bottom-right of the editor. Click it for a chat panel docked beside your file: summarize it, explain
+            a format, remove duplicate rows, sort or clean up text, convert between CSV and JSON, or have a regex
+            built and dropped straight into Find &amp; Replace.
+            <br />
+            <br />
+            Anything that <strong>rewrites text shows you a diff first</strong> — nothing changes your file until
+            you press Apply, and Apply is a single{' '}
+            <span className="font-mono text-sm">Ctrl+Z</span> away from being undone. The chat always shows exactly
+            what is being sent before you send it. Your key is encrypted with your operating system&apos;s
+            credential store, and the feature is <strong>off until you turn it on</strong>.
+          </>
+        )
+      },
       {
         title: 'No more frozen editor after a confirmation prompt',
         body: (

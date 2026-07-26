@@ -12,6 +12,7 @@ import { registerUpdateHandlers } from './ipc/updateHandlers'
 import { registerBackupHandlers } from './ipc/backupHandlers'
 import { registerToolsHandlers } from './ipc/toolsHandlers'
 import { registerPrintHandlers } from './ipc/printHandlers'
+import { registerAiHandlers } from './ipc/aiHandlers'
 import { UpdateManager } from './update/UpdateManager'
 import { PluginLoader } from './plugins/PluginLoader'
 import { SessionManager } from './sessions/SessionManager'
@@ -285,6 +286,7 @@ app.whenReady().then(() => {
   registerBackupHandlers()
   registerToolsHandlers()
   registerPrintHandlers()
+  registerAiHandlers()
 
   createWindow()
 

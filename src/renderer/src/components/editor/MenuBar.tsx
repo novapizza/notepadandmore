@@ -12,6 +12,7 @@ import { useUIStore } from '../../store/uiStore'
 import { useEditorStore } from '../../store/editorStore'
 import { useConfigStore } from '../../store/configStore'
 import { usePluginStore } from '../../store/pluginStore'
+import { useAiStore } from '../../store/aiStore'
 import { isMacOS, isWindows, shortcutMod, shortcutAlt } from '../../utils/platform'
 import { MnemonicLabel, parseMnemonic } from '../../utils/mnemonic'
 import { useAltHeld } from '../../hooks/useAltHeld'
@@ -352,6 +353,21 @@ export function MenuBar({
             { label: 'UUID &Generator', action: () => openTool('uuid') },
             { label: '&Lorem Ipsum', action: () => openTool('lorem') },
           ],
+        },
+        { separator: true, label: '' } as MenuItem,
+        {
+          label: '&AI Assistant',
+          shortcut: `${shortcutMod()}+Shift+A`,
+          action: () => {
+            // Off means "not set up yet" — send the user somewhere useful rather
+            // than toggling a panel they can't use.
+            if (!useConfigStore.getState().aiEnabled) {
+              useUIStore.getState().setPendingSettingsCategory('ai')
+              useEditorStore.getState().openVirtualTab('settings')
+              return
+            }
+            useAiStore.getState().togglePanel()
+          },
         },
       ]
     })(),

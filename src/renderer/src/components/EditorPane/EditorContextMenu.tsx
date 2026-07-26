@@ -12,6 +12,8 @@ import {
 } from '../ui/context-menu'
 import { shortcutMod } from '../../utils/platform'
 import { editorRegistry } from '../../utils/editorRegistry'
+import { useConfigStore } from '../../store/configStore'
+import { useAiStore } from '../../store/aiStore'
 
 const editorCmd = (cmd: string) =>
   window.dispatchEvent(new CustomEvent('editor:command', { detail: cmd }))
@@ -69,12 +71,25 @@ function doSelectAll() {
   ed.focus()
 }
 
+/**
+ * Open the assistant with the selection as its context. The panel's context
+ * chip resolves 'selection' against the live editor, so nothing needs to be
+ * copied across here — just pin the mode and show the panel.
+ */
+function openAiForSelection() {
+  const ctx = getActiveSelection()
+  const ai = useAiStore.getState()
+  ai.setContextOverride(ctx && !ctx.sel.isEmpty() ? 'selection' : 'auto')
+  ai.openPanel()
+}
+
 interface EditorContextMenuProps {
   children: React.ReactNode
 }
 
 export function EditorContextMenu({ children }: EditorContextMenuProps) {
   const mod = shortcutMod()
+  const aiEnabled = useConfigStore((s) => s.aiEnabled)
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -100,6 +115,16 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
           Select All
           <ContextMenuShortcut>{mod}+A</ContextMenuShortcut>
         </ContextMenuItem>
+
+        {aiEnabled && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={openAiForSelection}>
+              Ask AI about selection
+              <ContextMenuShortcut>{mod}+Shift+A</ContextMenuShortcut>
+            </ContextMenuItem>
+          </>
+        )}
 
         <ContextMenuSeparator />
 

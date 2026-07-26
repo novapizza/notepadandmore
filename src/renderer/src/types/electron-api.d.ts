@@ -20,7 +20,8 @@ interface ElectronAPI {
       filePath: string,
       content: string,
       encoding?: string,
-      eol?: string
+      eol?: string,
+      hasBom?: boolean
     ) => Promise<{ error: string | null; magikaSample: Uint8Array }>
     saveDialog: (
       defaultPath?: string,
@@ -123,6 +124,30 @@ interface ElectronAPI {
     document: (html: string) => Promise<{ success: boolean; error?: string }>
   }
 
+  /**
+   * AI assistant. There is intentionally no `getKey` — the plaintext API key
+   * never crosses the bridge. `status()` returns a last-4 hint only.
+   */
+  ai: {
+    status: (provider: string) => Promise<{
+      provider: string
+      available: boolean
+      hasKey: boolean
+      hint: string | null
+      defaultModels: string[]
+      error: string | null
+    }>
+    setKey: (provider: string, key: string) => Promise<{ error: string | null }>
+    clearKey: (provider: string) => Promise<{ error: string | null }>
+    providers: () => Promise<Array<{ id: string; label: string; defaultModels: string[] }>>
+    test: (provider: string) => Promise<{ ok: boolean; models: string[]; error: string | null }>
+    send: (
+      provider: string,
+      request: object
+    ) => Promise<{ requestId: string | null; error: string | null }>
+    cancel: (requestId: string) => Promise<{ error: string | null }>
+  }
+
   app: {
     getVersion: () => Promise<string>
   }
@@ -138,6 +163,7 @@ interface ElectronAPI {
   update: {
     check: () => Promise<void>
     install: () => Promise<void>
+    capable: () => Promise<boolean>
   }
 
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void

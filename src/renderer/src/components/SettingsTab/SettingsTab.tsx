@@ -4,6 +4,7 @@ import { useConfigStore, AppConfig } from '../../store/configStore'
 import { usePluginStore, PluginSettingField } from '../../store/pluginStore'
 import { cn } from '../../lib/utils'
 import { ShortcutsSection } from './ShortcutsSection'
+import { AiSection } from './AiSection'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeDrawer } from './ThemeDrawer'
 import { useAltHeld } from '../../hooks/useAltHeld'
@@ -11,7 +12,7 @@ import { useAltMnemonics, MnemonicHandlers } from '../../hooks/useAltMnemonics'
 import { MnemonicLabel, parseMnemonic } from '../../utils/mnemonic'
 import { isWindows } from '../../utils/platform'
 
-type PrefTab = 'general' | 'editor' | 'appearance' | 'newDoc' | 'backup' | 'completion' | 'shortcuts' | 'extensions'
+type PrefTab = 'general' | 'editor' | 'appearance' | 'newDoc' | 'backup' | 'completion' | 'shortcuts' | 'ai' | 'extensions'
 
 const STATIC_TABS: { id: PrefTab; label: string }[] = [
   { id: 'general',    label: '&General' },
@@ -21,6 +22,8 @@ const STATIC_TABS: { id: PrefTab; label: string }[] = [
   { id: 'backup',     label: '&Backup / AutoSave' },
   { id: 'completion', label: 'Auto-&Completion' },
   { id: 'shortcuts',  label: '&Keyboard Shortcuts' },
+  // Mnemonic I, not A — &A is taken by Appearance.
+  { id: 'ai',         label: 'A&I Assistant' },
 ]
 
 const ENCODINGS = [
@@ -253,6 +256,8 @@ export function SettingsTab() {
           )}
 
           {activeTab === 'shortcuts' && <ShortcutsSection />}
+
+          {activeTab === 'ai' && <AiSection />}
 
           {activeTab === 'extensions' && (
             <div className="flex flex-col gap-6 max-w-[520px]">

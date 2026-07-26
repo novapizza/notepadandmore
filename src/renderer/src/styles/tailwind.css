@@ -290,4 +290,58 @@
   .dark .markdown-body .hljs-title { color: #82aaff; }
   .dark .markdown-body .hljs-variable,
   .dark .markdown-body .hljs-attr { color: #f07178; }
+
+  /* ── AI assistant chat bubbles (react-markdown output) ───────────────────────
+     Tighter than .markdown-body: the panel is narrow and a transcript reads as
+     a conversation, not a document, so headings stay small and margins stay
+     compact. Code blocks scroll horizontally instead of widening the panel. */
+  .ai-markdown { line-height: 1.55; }
+  .ai-markdown > *:first-child { margin-top: 0; }
+  .ai-markdown > *:last-child { margin-bottom: 0; }
+  .ai-markdown p { margin: 0.4em 0; }
+  .ai-markdown h1, .ai-markdown h2, .ai-markdown h3,
+  .ai-markdown h4, .ai-markdown h5, .ai-markdown h6 {
+    font-weight: 600; font-size: 1em; margin: 0.8em 0 0.3em; color: hsl(var(--foreground));
+  }
+  .ai-markdown ul, .ai-markdown ol { padding-left: 1.3em; margin: 0.4em 0; }
+  .ai-markdown ul { list-style: disc; }
+  .ai-markdown ol { list-style: decimal; }
+  .ai-markdown li { margin: 0.15em 0; }
+  .ai-markdown a { color: hsl(var(--primary)); text-decoration: underline; }
+  .ai-markdown strong { font-weight: 600; color: hsl(var(--foreground)); }
+  .ai-markdown code {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: 3px;
+    padding: 0.05em 0.3em;
+    font-family: 'JetBrains Mono', Consolas, Menlo, monospace;
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+  .ai-markdown pre {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: 5px;
+    padding: 0.6em 0.7em;
+    overflow-x: auto;
+    margin: 0.5em 0;
+  }
+  .ai-markdown pre code {
+    background: none; border: none; padding: 0;
+    font-size: 0.88em; overflow-wrap: normal; white-space: pre;
+  }
+  .ai-markdown blockquote {
+    border-left: 2px solid hsl(var(--border));
+    margin: 0.5em 0; padding: 0.1em 0.7em;
+    color: hsl(var(--muted-foreground));
+  }
+  .ai-markdown table { border-collapse: collapse; margin: 0.5em 0; display: block; overflow-x: auto; }
+  .ai-markdown th, .ai-markdown td {
+    border: 1px solid hsl(var(--border));
+    padding: 0.25em 0.5em;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .ai-markdown th { background: hsl(var(--muted)); font-weight: 600; }
+  .ai-markdown hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 0.8em 0; }
 }
