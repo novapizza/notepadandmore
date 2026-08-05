@@ -32,12 +32,12 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.6.0',
+    version: '1.6.5',
     summary: (
       <>
         A <strong>command palette</strong> that searches everything NovaPad can do, a Keyboard Shortcuts
-        editor that finally applies your rebinds, an optional <strong>AI assistant</strong> you can point at
-        the open document, and a fix for the editor freezing after a confirmation prompt.
+        editor that finally applies your rebinds, and <strong>Sticky Notes</strong> — a scratchpad that
+        never becomes a tab.
       </>
     ),
     highlights: [
@@ -92,36 +92,6 @@ export const RELEASE_NOTES: ReleaseNote[] = [
         )
       },
       {
-        title: 'Ask Gemini about the open document',
-        body: (
-          <>
-            Add a Google Gemini API key in <strong>Settings ▸ AI Assistant</strong> and a badge appears at the
-            bottom-right of the editor. Click it for a chat panel docked beside your file: summarize it, explain
-            a format, remove duplicate rows, sort or clean up text, convert between CSV and JSON, or have a regex
-            built and dropped straight into Find &amp; Replace.
-            <br />
-            <br />
-            Anything that <strong>rewrites text shows you a diff first</strong> — nothing changes your file until
-            you press Apply, and Apply is a single{' '}
-            <span className="font-mono text-sm">Ctrl+Z</span> away from being undone. The chat always shows exactly
-            what is being sent before you send it. Your key is encrypted with your operating system&apos;s
-            credential store, and the feature is <strong>off until you turn it on</strong>.
-          </>
-        )
-      },
-      {
-        title: 'No more frozen editor after a confirmation prompt',
-        body: (
-          <>
-            Confirmation prompts — closing an unsaved tab, quitting with unsaved changes, deleting a file,
-            switching workspace, uninstalling a plugin — are now proper <strong>native dialogs</strong>.
-            Previously, dismissing one could leave the editor unable to paint or accept keystrokes until you
-            restarted the app. <em>Close All</em>, <em>Close Others</em> and <em>Save All</em> also ask about one
-            file at a time now, instead of stacking every prompt on top of each other.
-          </>
-        )
-      },
-      {
         title: 'Sticky Notes — a scratchpad that never becomes a tab',
         body: (
           <>
@@ -154,6 +124,47 @@ export const RELEASE_NOTES: ReleaseNote[] = [
             fell back to <em>File Browser</em> after a restart. Settings and notes are also written
             <strong> atomically</strong> now (write-then-rename), so a crash or power loss mid-write can no
             longer leave a truncated <span className="font-mono text-sm">config.json</span>.
+          </>
+        )
+      }
+    ]
+  },
+  {
+    version: '1.6.0',
+    summary: (
+      <>
+        An optional <strong>AI assistant</strong> you can point at the open document — ask questions,
+        transform text, or generate a regex — plus a fix for the editor freezing after a confirmation prompt.
+      </>
+    ),
+    highlights: [
+      {
+        title: 'Ask Gemini about the open document',
+        body: (
+          <>
+            Add a Google Gemini API key in <strong>Settings ▸ AI Assistant</strong> and a badge appears at the
+            bottom-right of the editor. Click it for a chat panel docked beside your file: summarize it, explain
+            a format, remove duplicate rows, sort or clean up text, convert between CSV and JSON, or have a regex
+            built and dropped straight into Find &amp; Replace.
+            <br />
+            <br />
+            Anything that <strong>rewrites text shows you a diff first</strong> — nothing changes your file until
+            you press Apply, and Apply is a single{' '}
+            <span className="font-mono text-sm">Ctrl+Z</span> away from being undone. The chat always shows exactly
+            what is being sent before you send it. Your key is encrypted with your operating system&apos;s
+            credential store, and the feature is <strong>off until you turn it on</strong>.
+          </>
+        )
+      },
+      {
+        title: 'No more frozen editor after a confirmation prompt',
+        body: (
+          <>
+            Confirmation prompts — closing an unsaved tab, quitting with unsaved changes, deleting a file,
+            switching workspace, uninstalling a plugin — are now proper <strong>native dialogs</strong>.
+            Previously, dismissing one could leave the editor unable to paint or accept keystrokes until you
+            restarted the app. <em>Close All</em>, <em>Close Others</em> and <em>Save All</em> also ask about one
+            file at a time now, instead of stacking every prompt on top of each other.
           </>
         )
       }

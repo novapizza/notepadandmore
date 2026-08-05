@@ -10,6 +10,8 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+## [1.6.5]
+
 ### Added
 - **Command palette.** `Ctrl/Cmd+Shift+P` opens a fuzzy-searchable list of everything NovaPad can do —
   every menu command, all 9 developer tools, the 3 colour themes, the 8 Settings categories, and any
@@ -176,7 +178,8 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 - **Settings page reset its selected category** when you switched to another tab and back — the
   active category is now preserved.
 
-[Unreleased]: https://github.com/novapizza/novapad/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/novapizza/novapad/compare/v1.6.5...HEAD
+[1.6.5]: https://github.com/novapizza/novapad/compare/v1.6.0...v1.6.5
 [1.6.0]: https://github.com/novapizza/novapad/compare/v1.5.9...v1.6.0
 [1.5.9]: https://github.com/novapizza/novapad/compare/v1.5.8...v1.5.9
 [1.5.8]: https://github.com/novapizza/novapad/releases/tag/v1.5.8
