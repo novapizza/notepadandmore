@@ -1,30 +1,43 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react'
-import { RotateCcw, Search, X } from 'lucide-react'
+import { AlertTriangle, Lock, RotateCcw, Search, X } from 'lucide-react'
 import { useConfigStore } from '../../store/configStore'
 import {
   SHORTCUT_CATALOG,
   SHORTCUT_SECTIONS,
-  bindingDisplay,
   captureBinding,
   formatBinding,
   resolveBinding,
-  ShortcutSection,
 } from '../../utils/shortcutCatalog'
 import { cn } from '../../lib/utils'
 
 /**
- * Shortcuts editor inside the Settings tab. Lists every command from the
- * catalog, grouped by section, and lets the user rebind via a click-to-record
- * input. Edits are persisted to `config.shortcuts`. Note: re-binding the
- * actual key handlers (Monaco editor.addCommand + native Electron menu
- * accelerators) is not wired yet — the override is saved and reflected in
- * the menu's displayed shortcut text, but pressing the new combo doesn't
- * take effect at runtime until that pass lands.
+ * Shortcuts editor inside the Settings tab. Lists every command in the registry
+ * that declares a default binding, grouped by section, and lets the user rebind
+ * via a click-to-record input. Edits persist to `config.shortcuts` and take
+ * effect immediately — `commands/useCommandKeys` derives its binding map from
+ * exactly that value, so there is no restart and no second list to keep in sync.
  */
+
+/**
+ * Combos the renderer can't take over: they belong to Electron `role:` items or
+ * to Electron itself, so accepting a rebind onto one would save a binding that
+ * silently never fires.
+ */
+const RESERVED_COMBOS: Record<string, string> = {
+  'Mod+Z': 'Undo',
+  'Mod+Y': 'Redo',
+  'Mod+X': 'Cut',
+  'Mod+C': 'Copy',
+  'Mod+V': 'Paste',
+  'Mod+A': 'Select All',
+  'F12': 'Developer Tools',
+}
+
 export function ShortcutsSection() {
   const shortcuts = useConfigStore((s) => s.shortcuts)
   const setProp = useConfigStore((s) => s.setProp)
   const [filter, setFilter] = useState('')
+  const [rejected, setRejected] = useState<string | null>(null)
 
   const groups = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -41,7 +54,33 @@ export function ShortcutsSection() {
     })).filter((g) => g.items.length > 0)
   }, [filter, shortcuts])
 
+  /**
+   * Effective binding → the commands holding it, in catalog (declaration) order.
+   * Computed over the whole catalog, not the filtered view, so a conflict with a
+   * command the user has filtered out still shows up.
+   */
+  const conflicts = useMemo(() => {
+    const byBinding = new Map<string, string[]>()
+    for (const s of SHORTCUT_CATALOG) {
+      // A native-key row can't conflict: nothing in the renderer dispatches it.
+      if (s.nativeKey) continue
+      const binding = resolveBinding(s.id, shortcuts)
+      if (!binding) continue
+      const list = byBinding.get(binding)
+      if (list) list.push(s.label)
+      else byBinding.set(binding, [s.label])
+    }
+    return byBinding
+  }, [shortcuts])
+
   const setBinding = (id: string, combo: string | null) => {
+    if (combo !== null && RESERVED_COMBOS[combo]) {
+      setRejected(
+        `${formatBinding(combo)} is reserved by the operating system for ${RESERVED_COMBOS[combo]} — pick another combination.`
+      )
+      return
+    }
+    setRejected(null)
     const next = { ...shortcuts }
     if (combo === null) delete next[id]
     else next[id] = combo
@@ -50,6 +89,7 @@ export function ShortcutsSection() {
 
   const resetAll = () => {
     if (Object.keys(shortcuts).length === 0) return
+    setRejected(null)
     setProp('shortcuts', {})
   }
 
@@ -57,8 +97,7 @@ export function ShortcutsSection() {
     <div className="flex flex-col gap-3 max-w-[680px]">
       <p className="text-sm text-muted-foreground -mt-1">
         Edit any binding by clicking the key field and pressing the new combo. <kbd>Esc</kbd> cancels;
-        <kbd className="mx-1">Backspace</kbd> clears. Custom bindings are saved immediately; full
-        runtime re-binding will land in a follow-up.
+        <kbd className="mx-1">Backspace</kbd> clears. Changes apply immediately — no restart.
       </p>
 
       <div className="flex items-center gap-2">
@@ -92,6 +131,13 @@ export function ShortcutsSection() {
         </button>
       </div>
 
+      {rejected && (
+        <div className="flex items-start gap-2 text-sm text-amber-600 dark:text-amber-500">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>{rejected}</span>
+        </div>
+      )}
+
       {groups.length === 0 && (
         <div className="text-sm text-muted-foreground py-4">No matches.</div>
       )}
@@ -104,27 +150,46 @@ export function ShortcutsSection() {
           <div className="flex flex-col">
             {items.map((s) => {
               const isOverride = !!shortcuts[s.id]
+              const binding = resolveBinding(s.id, shortcuts)
+              const sharing = (conflicts.get(binding) ?? []).filter((l) => l !== s.label)
               return (
-                <div
-                  key={s.id}
-                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-1.5 group"
-                >
-                  <div className="text-sm text-foreground truncate" title={s.id}>
-                    {s.label}
+                <div key={s.id} className="flex flex-col py-1.5 group">
+                  <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                    <div className="text-sm text-foreground truncate" title={s.id}>
+                      {s.label}
+                    </div>
+                    {s.nativeKey ? (
+                      <span
+                        className="min-w-[160px] px-2.5 py-1 text-sm rounded border border-border bg-secondary/40 text-muted-foreground text-right font-mono tabular-nums flex items-center justify-end gap-1.5"
+                        title="Handled by the operating system or the editor itself — not rebindable"
+                      >
+                        <Lock size={12} className="shrink-0" />
+                        {formatBinding(s.defaultKey)}
+                      </span>
+                    ) : (
+                      <BindingInput
+                        value={binding}
+                        isOverride={isOverride}
+                        onChange={(combo) => setBinding(s.id, combo)}
+                      />
+                    )}
+                    <button
+                      onClick={() => setBinding(s.id, null)}
+                      disabled={!isOverride || s.nativeKey}
+                      className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Reset to default"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
                   </div>
-                  <BindingInput
-                    value={resolveBinding(s.id, shortcuts)}
-                    isOverride={isOverride}
-                    onChange={(combo) => setBinding(s.id, combo)}
-                  />
-                  <button
-                    onClick={() => setBinding(s.id, null)}
-                    disabled={!isOverride}
-                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Reset to default"
-                  >
-                    <RotateCcw size={14} />
-                  </button>
+                  {sharing.length > 0 && (
+                    <div className="flex items-start gap-1.5 mt-1 text-sm text-amber-600 dark:text-amber-500">
+                      <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                      <span>
+                        Also assigned to {sharing.join(', ')}. The first command in this list wins.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )
             })}

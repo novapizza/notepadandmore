@@ -35,11 +35,62 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     version: '1.6.0',
     summary: (
       <>
-        An optional <strong>AI assistant</strong> you can point at the open document — ask questions,
-        transform text, or generate a regex — plus a fix for the editor freezing after a confirmation prompt.
+        A <strong>command palette</strong> that searches everything NovaPad can do, a Keyboard Shortcuts
+        editor that finally applies your rebinds, an optional <strong>AI assistant</strong> you can point at
+        the open document, and a fix for the editor freezing after a confirmation prompt.
       </>
     ),
     highlights: [
+      {
+        title: 'Command palette — one search box for every command',
+        body: (
+          <>
+            Press <span className="font-mono text-sm">Ctrl/Cmd+Shift+P</span> and start typing. Around 150
+            commands — every menu entry, all nine developer tools, each colour theme, every Settings
+            category, and anything your plugins contribute — are fuzzy-searchable by name, section or
+            related words, so <span className="font-mono text-sm">enc</span> finds{' '}
+            <em>Encode in UTF-8</em> and <span className="font-mono text-sm">color</span> finds both the
+            Color Converter and the colour themes. Each row shows the command&apos;s shortcut, so the palette
+            doubles as the fastest way to learn them. Commands you can&apos;t run right now — editor
+            operations with no file open, workspace searches with no folder open — are simply left out.
+            <br />
+            <br />
+            <strong>Heads up — this moves a shortcut.</strong>{' '}
+            <span className="font-mono text-sm">Ctrl/Cmd+Shift+P</span> used to open <em>Go to File</em>,
+            which now lives on <span className="font-mono text-sm">Ctrl/Cmd+E</span>. Both share one
+            overlay: delete the leading <span className="font-mono text-sm">&gt;</span> to search files
+            instead of commands, and type it back to return.{' '}
+            <span className="font-mono text-sm">Ctrl/Cmd+P</span> still toggles Preview.
+          </>
+        )
+      },
+      {
+        title: 'Keyboard Shortcuts now actually rebind',
+        body: (
+          <>
+            <strong>Settings ▸ Keyboard Shortcuts</strong> saved your changes and showed them in the menus,
+            but nothing applied them — you pressed the new key and nothing happened while the old one kept
+            working. Every shortcut now resolves through a single handler that reads your overrides, so a
+            rebind takes effect the moment you record it, with no restart. Two commands sharing a key warn
+            each other and name the winner, and combos the operating system owns (
+            <span className="font-mono text-sm">Ctrl+C</span>,{' '}
+            <span className="font-mono text-sm">Ctrl+Z</span>,{' '}
+            <span className="font-mono text-sm">F12</span>) are refused with a reason instead of silently
+            accepted. The panel also covers far more of the app than the 46 commands it used to list.
+          </>
+        )
+      },
+      {
+        title: 'Menu items that did nothing now work',
+        body: (
+          <>
+            <em>Edit ▸ Indent Selection</em> and <em>Outdent Selection</em> were wired to a handler that did
+            not exist — both menus offered them and nothing happened. Same for <em>Undo</em> and{' '}
+            <em>Redo</em> on the Windows menu bar and the toolbar. <em>Begin/End Select</em> was greyed out
+            in both menus despite being fully implemented. All of them work now.
+          </>
+        )
+      },
       {
         title: 'Ask Gemini about the open document',
         body: (

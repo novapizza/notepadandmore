@@ -11,6 +11,53 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 ## [Unreleased]
 
 ### Added
+- **Command palette.** `Ctrl/Cmd+Shift+P` opens a fuzzy-searchable list of everything NovaPad can do —
+  every menu command, all 9 developer tools, the 3 colour themes, the 8 Settings categories, and any
+  plugin-contributed menu items. Matching runs over each command's label, section and keywords, so
+  "enc" finds *Encode in UTF-8*; each row shows the command's current shortcut. Commands that can't
+  run in the current context (no file open, no workspace folder, a read-only buffer) are omitted, and
+  the five most recently run commands sort first on an empty query.
+- **One palette, two modes.** A leading `>` searches commands and no prefix searches files; deleting or
+  typing the `>` switches between them without closing the overlay. File mode is the former Quick Open,
+  behaviour-for-behaviour.
+- **Command registry** (`src/renderer/src/commands/`). A command's id, label, section, default binding,
+  availability predicate and handler are now declared together in one module, which the palette, the
+  keyboard dispatcher, the Shortcuts editor and both menus all read from. Adding a tool or a theme
+  contributes a palette entry with no registry edit.
+- *Search ▸ Command Palette* in both the native menu and the Windows menu bar; the latter also gains a
+  *Go to File* entry it never had.
+- Print, Export to PDF, Mark, Close All Files, Sort Lines, Title Case, Insert Date & Time, Trim Trailing
+  Whitespace, Fold/Unfold All, Column Select Mode, encoding and EOL conversion, the Settings categories,
+  the colour themes, What's New, About and Check for Updates are all reachable from the palette.
+
+### Changed
+- **`Ctrl/Cmd+Shift+P` now opens the Command Palette.** It previously opened *Go to File*, which moves to
+  **`Ctrl/Cmd+E`** (VS Code's own alias for the file finder). `Ctrl/Cmd+P` still toggles Preview.
+- Native menu accelerators for app commands are now **display-only** (`registerAccelerator: false`): the
+  menu still shows each key, but the renderer owns dispatch. This is what makes rebinding take effect.
+  OS roles (Undo, Redo, Cut, Copy, Paste, Select All, Minimize, Zoom, Quit) and `F12` keep their native
+  accelerators and are not rebindable.
+- *Settings ▸ Keyboard Shortcuts* now lists every bindable command in the app, grouped into more sections
+  than the previous five, and no longer carries the "full runtime re-binding will land in a follow-up"
+  caveat.
+
+### Fixed
+- **Rebinding a keyboard shortcut now works.** The Shortcuts editor saved the override and redrew the
+  menu text, but nothing applied it at runtime — the new key did nothing while the old one kept working.
+  Every binding now resolves through a single handler that reads `config.shortcuts`, so a rebind applies
+  immediately, with no restart, and Reset restores the default just as fast.
+- **Conflicting shortcuts are surfaced.** Two commands sharing a key now warn on both rows and name which
+  one wins (the first in registry order). Combos that can't be captured — the OS `role:` accelerators and
+  `F12` — are refused with an explanation instead of being silently accepted.
+- ***Edit ▸ Indent Selection* and *Outdent Selection* did nothing.** Both menus dispatched a command with
+  no handler anywhere. They now run Monaco's indent/outdent actions. Typing Tab in the editor is
+  unaffected — that key is deliberately never claimed as a shortcut.
+- **Undo and Redo did nothing from the Windows menu bar and the toolbar.** Both dispatched an event with
+  no listener. (The native macOS menu was unaffected — it uses OS roles.)
+- ***Edit ▸ Begin/End Select* was disabled in both menus** despite being fully implemented. Enabled.
+- **A shortcut could fire twice.** `Ctrl/Cmd+Shift+A` (AI Assistant) and `Ctrl/Cmd+Shift+N` (Notes) were
+  registered both as native accelerators and as renderer keydown handlers; with focus outside the editor
+  both ran, so the panel toggled straight back shut. There is now exactly one path per keystroke.
 - **Sticky Notes.** A new *Notes* view (`Ctrl/Cmd+Shift+N`, the sticky-note icon at the right end of the
   toolbar, or *Tools ▸ Notes*) holds short plain-text notes that save themselves as you type and
   persist across restarts. It stacks **below** the File Explorer with a draggable divider rather than

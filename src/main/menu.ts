@@ -9,6 +9,22 @@ const pluginMenuRegistry: Map<string, PluginMenuEntry> = new Map()
 let currentWin: BrowserWindow | null = null
 let currentRecentFiles: string[] = []
 
+/**
+ * An accelerator the menu *displays* but does not register with the OS.
+ *
+ * Every command the renderer's registry owns is built this way: the user still
+ * discovers the key by browsing the menu, but exactly one code path responds to
+ * the keypress (`commands/useCommandKeys`) — which is what makes rebinding in
+ * Settings take effect and stops toggles firing twice (BR-002).
+ *
+ * Electron `role:` items (Undo/Redo/Cut/Copy/Paste/Select All/Minimize/Zoom/Quit)
+ * and F12 keep their native accelerators and stay out of the registry (BR-003).
+ */
+const displayKey = (accelerator: string): { accelerator: string; registerAccelerator: false } => ({
+  accelerator,
+  registerAccelerator: false
+})
+
 export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void {
   currentWin = win
   currentRecentFiles = recentFiles
@@ -29,7 +45,7 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
               { type: 'separator' as const },
               {
                 label: 'Settings…',
-                accelerator: 'CmdOrCtrl+,',
+                ...displayKey('CmdOrCtrl+,'),
                 click: () => win.webContents.send('menu:settings-open')
               },
               { type: 'separator' as const },
@@ -51,13 +67,13 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
       submenu: [
         {
           label: 'New',
-          accelerator: 'CmdOrCtrl+N',
+          ...displayKey('CmdOrCtrl+N'),
           click: () => win.webContents.send('menu:file-new')
         },
         { type: 'separator' },
         {
           label: 'Open...',
-          accelerator: 'CmdOrCtrl+O',
+          ...displayKey('CmdOrCtrl+O'),
           click: async () => {
             // Single "All Files" filter only — Windows persists the user's
             // last-used filter selection across dialog opens (an OS behavior
@@ -76,7 +92,7 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         },
         {
           label: 'Open Folder...',
-          accelerator: 'CmdOrCtrl+Shift+O',
+          ...displayKey('CmdOrCtrl+Shift+O'),
           click: async () => {
             const result = await dialog.showOpenDialog(win, {
               properties: ['openDirectory']
@@ -89,29 +105,29 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
+          ...displayKey('CmdOrCtrl+S'),
           click: () => win.webContents.send('menu:file-save')
         },
         {
           label: 'Save As...',
-          accelerator: 'CmdOrCtrl+Shift+S',
+          ...displayKey('CmdOrCtrl+Shift+S'),
           click: () => win.webContents.send('menu:file-save-as')
         },
         {
           label: 'Save All',
-          accelerator: 'CmdOrCtrl+Alt+S',
+          ...displayKey('CmdOrCtrl+Alt+S'),
           click: () => win.webContents.send('menu:file-save-all')
         },
         { type: 'separator' },
         {
           label: 'Reload from Disk',
-          accelerator: 'CmdOrCtrl+R',
+          ...displayKey('CmdOrCtrl+R'),
           click: () => win.webContents.send('menu:file-reload')
         },
         { type: 'separator' },
         {
           label: 'Print…',
-          accelerator: 'CmdOrCtrl+Alt+P',
+          ...displayKey('CmdOrCtrl+Alt+P'),
           click: () => win.webContents.send('editor:command', 'printDocument')
         },
         {
@@ -121,7 +137,7 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Close',
-          accelerator: 'CmdOrCtrl+W',
+          ...displayKey('CmdOrCtrl+W'),
           click: () => win.webContents.send('menu:file-close')
         },
         {
@@ -158,13 +174,13 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
             {
               label: 'Select',
               accelerator: 'CmdOrCtrl+Shift+B',
-              enabled: false,
+              registerAccelerator: false,
               click: () => win.webContents.send('editor:command', 'beginEndSelect')
             },
             {
               label: 'Column Mode',
               accelerator: 'CmdOrCtrl+Shift+Alt+B',
-              enabled: false,
+              registerAccelerator: false,
               click: () => win.webContents.send('editor:command', 'beginEndSelectColumn')
             }
           ]
@@ -173,10 +189,10 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         {
           label: 'Line Operations',
           submenu: [
-            { label: 'Duplicate Line', accelerator: 'CmdOrCtrl+D', click: () => win.webContents.send('editor:command', 'duplicateLine') },
-            { label: 'Delete Line', accelerator: 'CmdOrCtrl+Shift+K', click: () => win.webContents.send('editor:command', 'deleteLine') },
-            { label: 'Move Line Up', accelerator: 'Alt+Up', click: () => win.webContents.send('editor:command', 'moveLineUp') },
-            { label: 'Move Line Down', accelerator: 'Alt+Down', click: () => win.webContents.send('editor:command', 'moveLineDown') },
+            { label: 'Duplicate Line', ...displayKey('CmdOrCtrl+D'), click: () => win.webContents.send('editor:command', 'duplicateLine') },
+            { label: 'Delete Line', ...displayKey('CmdOrCtrl+Shift+K'), click: () => win.webContents.send('editor:command', 'deleteLine') },
+            { label: 'Move Line Up', ...displayKey('Alt+Up'), click: () => win.webContents.send('editor:command', 'moveLineUp') },
+            { label: 'Move Line Down', ...displayKey('Alt+Down'), click: () => win.webContents.send('editor:command', 'moveLineDown') },
             { type: 'separator' },
             { label: 'Sort Lines Ascending', click: () => win.webContents.send('editor:command', 'sortLinesAsc') },
             { label: 'Sort Lines Descending', click: () => win.webContents.send('editor:command', 'sortLinesDesc') }
@@ -185,8 +201,8 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         {
           label: 'Convert Case (UPPER/lower)',
           submenu: [
-            { label: 'UPPERCASE', accelerator: 'CmdOrCtrl+Shift+U', click: () => win.webContents.send('editor:command', 'toUpperCase') },
-            { label: 'lowercase', accelerator: 'CmdOrCtrl+Shift+L', click: () => win.webContents.send('editor:command', 'toLowerCase') },
+            { label: 'UPPERCASE', ...displayKey('CmdOrCtrl+Shift+U'), click: () => win.webContents.send('editor:command', 'toUpperCase') },
+            { label: 'lowercase', ...displayKey('CmdOrCtrl+Shift+L'), click: () => win.webContents.send('editor:command', 'toLowerCase') },
             { label: 'Title Case', click: () => win.webContents.send('editor:command', 'toTitleCase') }
           ]
         },
@@ -209,12 +225,12 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Toggle Comment',
-          accelerator: 'CmdOrCtrl+/',
+          ...displayKey('CmdOrCtrl+/'),
           click: () => win.webContents.send('editor:command', 'toggleComment')
         },
         {
           label: 'Toggle Block Comment',
-          accelerator: 'CmdOrCtrl+Shift+/',
+          ...displayKey('CmdOrCtrl+Shift+/'),
           click: () => win.webContents.send('editor:command', 'toggleBlockComment')
         },
         { type: 'separator' },
@@ -224,27 +240,30 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         },
         {
           label: 'Beautify',
-          accelerator: 'CmdOrCtrl+Alt+Shift+M',
+          ...displayKey('CmdOrCtrl+Alt+Shift+M'),
           click: () => win.webContents.send('editor:command', 'beautify')
         },
         {
           label: 'Transform',
-          accelerator: 'CmdOrCtrl+Alt+Shift+K',
+          ...displayKey('CmdOrCtrl+Alt+Shift+K'),
           click: () => win.webContents.send('editor:command', 'transformToDiagram')
         },
         {
           label: 'Deduplicate',
-          accelerator: 'CmdOrCtrl+Alt+Shift+C',
+          ...displayKey('CmdOrCtrl+Alt+Shift+C'),
           click: () => win.webContents.send('editor:command', 'removeDuplicates')
         },
         {
+          // Tab / Shift+Tab are displayed but never registered — Monaco already
+          // indents a selection natively, and an OS-level Tab accelerator would
+          // swallow the key for ordinary typing.
           label: 'Indent Selection',
-          accelerator: 'Tab',
+          ...displayKey('Tab'),
           click: () => win.webContents.send('editor:command', 'indentSelection')
         },
         {
           label: 'Outdent Selection',
-          accelerator: 'Shift+Tab',
+          ...displayKey('Shift+Tab'),
           click: () => win.webContents.send('editor:command', 'outdentSelection')
         }
       ]
@@ -256,22 +275,30 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
       submenu: [
         {
           label: 'Find...',
-          accelerator: 'CmdOrCtrl+F',
+          ...displayKey('CmdOrCtrl+F'),
           click: () => win.webContents.send('menu:find')
         },
         {
           label: 'Replace...',
-          accelerator: 'CmdOrCtrl+H',
+          ...displayKey('CmdOrCtrl+H'),
           click: () => win.webContents.send('menu:replace')
         },
         {
           label: 'Find in Files...',
-          accelerator: 'CmdOrCtrl+Shift+F',
+          ...displayKey('CmdOrCtrl+Shift+F'),
           click: () => win.webContents.send('menu:find-in-files')
         },
+        { type: 'separator' },
         {
+          label: 'Command Palette...',
+          ...displayKey('CmdOrCtrl+Shift+P'),
+          click: () => win.webContents.send('menu:command-palette')
+        },
+        {
+          // Moved off CmdOrCtrl+Shift+P, which the Command Palette now owns;
+          // CmdOrCtrl+E is VS Code's own alias for the file finder.
           label: 'Go to File...',
-          accelerator: 'CmdOrCtrl+Shift+P',
+          ...displayKey('CmdOrCtrl+E'),
           click: () => win.webContents.send('menu:goto-file')
         },
         {
@@ -283,23 +310,23 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Go to Line...',
-          accelerator: 'CmdOrCtrl+G',
+          ...displayKey('CmdOrCtrl+G'),
           click: () => win.webContents.send('editor:command', 'goToLine')
         },
         { type: 'separator' },
         {
           label: 'Toggle Bookmark',
-          accelerator: 'CmdOrCtrl+F2',
+          ...displayKey('CmdOrCtrl+F2'),
           click: () => win.webContents.send('editor:command', 'toggleBookmark')
         },
         {
           label: 'Next Bookmark',
-          accelerator: 'F2',
+          ...displayKey('F2'),
           click: () => win.webContents.send('editor:command', 'nextBookmark')
         },
         {
           label: 'Previous Bookmark',
-          accelerator: 'Shift+F2',
+          ...displayKey('Shift+F2'),
           click: () => win.webContents.send('editor:command', 'prevBookmark')
         },
         { label: 'Clear All Bookmarks', click: () => win.webContents.send('editor:command', 'clearBookmarks') }
@@ -327,21 +354,21 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         {
           id: 'toggle-sidebar',
           label: 'Toggle Sidebar',
-          accelerator: 'CmdOrCtrl+B',
+          ...displayKey('CmdOrCtrl+B'),
           type: 'checkbox',
           checked: true,
           click: (item) => win.webContents.send('ui:toggle-sidebar', item.checked)
         },
         {
           label: 'Preview',
-          accelerator: 'CmdOrCtrl+P',
+          ...displayKey('CmdOrCtrl+P'),
           click: () => win.webContents.send('editor:command', 'togglePreview')
         },
         { type: 'separator' },
         {
           id: 'toggle-word-wrap',
           label: 'Word Wrap',
-          accelerator: 'Alt+Z',
+          ...displayKey('Alt+Z'),
           type: 'checkbox',
           checked: false,
           click: (item) => win.webContents.send('editor:set-option', { wordWrap: item.checked ? 'on' : 'off' })
@@ -414,17 +441,17 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Zoom In',
-          accelerator: 'CmdOrCtrl+=',
+          ...displayKey('CmdOrCtrl+='),
           click: () => win.webContents.send('editor:command', 'zoomIn')
         },
         {
           label: 'Zoom Out',
-          accelerator: 'CmdOrCtrl+-',
+          ...displayKey('CmdOrCtrl+-'),
           click: () => win.webContents.send('editor:command', 'zoomOut')
         },
         {
           label: 'Reset Zoom',
-          accelerator: 'CmdOrCtrl+0',
+          ...displayKey('CmdOrCtrl+0'),
           click: () => win.webContents.send('editor:command', 'zoomReset')
         },
         { type: 'separator' },
@@ -447,7 +474,7 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         {
           id: 'toggle-split-view',
           label: 'Split View',
-          accelerator: 'CmdOrCtrl+\\',
+          ...displayKey('CmdOrCtrl+\\'),
           type: 'checkbox',
           checked: false,
           click: (item) => win.webContents.send('ui:toggle-split-view', item.checked)
@@ -524,18 +551,14 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         },
         { type: 'separator' as const },
         {
-          // Like AI Assistant below, the renderer also binds this in the capture
-          // phase — the accelerator alone is swallowed while Monaco has focus.
           label: 'Notes',
-          accelerator: 'CmdOrCtrl+Shift+N',
+          ...displayKey('CmdOrCtrl+Shift+N'),
           click: () => win.webContents.send('ui:toggle-notes')
         },
         {
-          // Ctrl/Cmd+Shift+A, not +I — Electron reserves +I for DevTools. The
-          // renderer also binds this in the capture phase, since the accelerator
-          // alone gets swallowed while Monaco has focus.
+          // Ctrl/Cmd+Shift+A, not +I — Electron reserves +I for DevTools.
           label: 'AI Assistant',
-          accelerator: 'CmdOrCtrl+Shift+A',
+          ...displayKey('CmdOrCtrl+Shift+A'),
           click: () => win.webContents.send('menu:ai-assistant')
         }
       ]
@@ -572,12 +595,12 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         { type: 'separator' },
         {
           label: 'Next Tab',
-          accelerator: 'CmdOrCtrl+Tab',
+          ...displayKey('CmdOrCtrl+Tab'),
           click: () => win.webContents.send('tab:next')
         },
         {
           label: 'Previous Tab',
-          accelerator: 'CmdOrCtrl+Shift+Tab',
+          ...displayKey('CmdOrCtrl+Shift+Tab'),
           click: () => win.webContents.send('tab:prev')
         },
         ...(isMac ? [{ type: 'separator' as const }, { role: 'front' as const }] : [])
@@ -603,22 +626,13 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         },
         { type: 'separator' },
         {
+          // Not a registry command — F12 stays a real OS accelerator.
           label: 'Toggle Developer Tools',
           accelerator: 'F12',
           click: () => win.webContents.toggleDevTools()
-        },
-        // Windows-only hidden accelerator for Settings (Ctrl+,). On macOS the
-        // App → Settings… menu item owns the accelerator.
-        ...(!isMac
-          ? [
-              {
-                label: 'Open Settings',
-                accelerator: 'CmdOrCtrl+,',
-                visible: false,
-                click: () => win.webContents.send('menu:settings-open')
-              }
-            ]
-          : [])
+        }
+        // The Windows-only hidden Ctrl+, item is gone: `prefs.settings` owns that
+        // binding in the renderer now, so a display-only duplicate would do nothing.
       ]
     }
   ]

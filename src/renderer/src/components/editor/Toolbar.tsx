@@ -83,8 +83,8 @@ export function Toolbar({ onNew, onOpen, onSave, onSaveAll, onFind, onReplace, o
     ],
     // Edit
     [
-      { icon: <Undo2 size={sz} />, title: `Undo (${mod}+Z)`, action: () => window.dispatchEvent(new CustomEvent('editor:undo')), color: C_PURPLE },
-      { icon: <Redo2 size={sz} />, title: `Redo (${mod}+Y)`, action: () => window.dispatchEvent(new CustomEvent('editor:redo')), color: C_PURPLE },
+      { icon: <Undo2 size={sz} />, title: `Undo (${mod}+Z)`, action: () => window.dispatchEvent(new CustomEvent('editor:command', { detail: 'undo' })), color: C_PURPLE },
+      { icon: <Redo2 size={sz} />, title: `Redo (${mod}+Y)`, action: () => window.dispatchEvent(new CustomEvent('editor:command', { detail: 'redo' })), color: C_PURPLE },
     ],
     // Clipboard
     [

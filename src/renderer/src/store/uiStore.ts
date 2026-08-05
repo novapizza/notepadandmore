@@ -74,8 +74,9 @@ interface UIState {
   /** @deprecated kept temporarily for any callers that read it; mirrors showPreview. */
   showMarkdownPreview: boolean
   showAbout: boolean
-  /** VSCode-style Quick Open (Ctrl+P) file-finder palette visibility. */
-  quickOpenVisible: boolean
+  /** Command palette. null = closed; otherwise the mode it opened in —
+   *  'commands' (Mod+Shift+P) or 'files' (Mod+E, the old Quick Open). */
+  commandPaletteMode: 'commands' | 'files' | null
   showBottomPanel: boolean
   activeBottomPanel: BottomPanelId
   toasts: Array<{ id: string; message: string; level: 'info' | 'warn' | 'error' }>
@@ -157,7 +158,7 @@ interface UIState {
   toggleMarkdownPreview: () => void
   setMarkdownPreview: (v: boolean) => void
   setShowAbout: (v: boolean) => void
-  setQuickOpenVisible: (v: boolean) => void
+  setCommandPalette: (mode: 'commands' | 'files' | null) => void
   setShowBottomPanel: (v: boolean) => void
   setActiveBottomPanel: (p: BottomPanelId) => void
   addToast: (message: string, level?: 'info' | 'warn' | 'error') => void
@@ -178,7 +179,7 @@ interface UIState {
  * The top-level overlays that all live on the same fixed z-[9000] layer in
  * App.tsx (Find & Replace, About, Quick Open, Tools). They each create their
  * own stacking context at the same z-index, so when two are open at once the
- * later one in the DOM wins — and the modal ones (About/QuickOpen/Tools) have a
+ * later one in the DOM wins — and the modal ones (About/palette/Tools) have a
  * full-screen pointer-events backdrop that then swallows clicks meant for
  * whatever is behind it. Find & Replace is non-modal and rendered first, so it
  * was the usual victim: it stayed visible but became unclickable when another
@@ -190,7 +191,7 @@ interface UIState {
 const CLOSE_TOP_OVERLAYS = {
   showFindReplace: false,
   showAbout: false,
-  quickOpenVisible: false,
+  commandPaletteMode: null,
   toolsPanelOpen: false,
 } as const
 
@@ -221,7 +222,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   previewLayout: 'side',
   showMarkdownPreview: false,
   showAbout: false,
-  quickOpenVisible: false,
+  commandPaletteMode: null,
   showBottomPanel: false,
   activeBottomPanel: 'findResults',
   toasts: [],
@@ -350,7 +351,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   setMarkdownPreview: (v) =>
     set((s) => ({ showPreview: v, showMarkdownPreview: v, previewFullscreen: v ? s.previewFullscreen : false })),
   setShowAbout: (v) => set(v ? { ...CLOSE_TOP_OVERLAYS, showAbout: true } : { showAbout: false }),
-  setQuickOpenVisible: (v) => set(v ? { ...CLOSE_TOP_OVERLAYS, quickOpenVisible: true } : { quickOpenVisible: false }),
+  setCommandPalette: (mode) =>
+    set(mode ? { ...CLOSE_TOP_OVERLAYS, commandPaletteMode: mode } : { commandPaletteMode: null }),
   setShowBottomPanel: (v) => set({ showBottomPanel: v }),
   setActiveBottomPanel: (p) => set({ activeBottomPanel: p }),
 

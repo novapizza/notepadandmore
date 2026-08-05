@@ -7,12 +7,11 @@ import {
   RotateCcw, ChevronRight, Clock,
   Settings as SettingsIcon, Sun, Moon, Keyboard,
   Printer, FileDown,
+  Terminal as TerminalIcon,
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { useEditorStore } from '../../store/editorStore'
-import { useConfigStore } from '../../store/configStore'
 import { usePluginStore } from '../../store/pluginStore'
-import { useAiStore } from '../../store/aiStore'
 import { isMacOS, isWindows, shortcutMod, shortcutAlt } from '../../utils/platform'
 import { MnemonicLabel, parseMnemonic } from '../../utils/mnemonic'
 import { useAltHeld } from '../../hooks/useAltHeld'
@@ -21,6 +20,7 @@ import { SettingsMenu } from './SettingsMenu'
 import { NavButtons } from './NavButtons'
 import { HASH_ALGOS, openHashGenerator, hashFromFiles, hashSelectionToClipboard } from '../../lib/tools/hashActions'
 import { ENCODINGS, EOLS } from '../../constants/registries'
+import { runCommand } from '../../commands/registry'
 
 interface MenuBarProps {
   onNew: () => void
@@ -53,6 +53,10 @@ interface MenuItem {
 const editorCmd = (cmd: string) => () =>
   window.dispatchEvent(new CustomEvent('editor:command', { detail: cmd }))
 
+/** Invoke a registry command, so this menu shares one implementation with the
+ *  palette, the keyboard and the native menu. */
+const cmd = (id: string) => () => runCommand(id)
+
 export function MenuBar({
   onNew, onOpen, onOpenFolder, onSave, onSaveAs, onSaveAll,
   onClose, onCloseAll, onFind, onReplace, onFindInFiles, onReload, onOpenRecent,
@@ -71,9 +75,9 @@ export function MenuBar({
     showToolbar, showStatusBar, showSidebar,
     wordWrap, renderWhitespace, showEOL, showNonPrinting, showControlChars,
     indentationGuides, columnSelectMode, splitView, theme,
-    setShowToolbar, setShowStatusBar, setShowSidebar,
-    setWordWrap, setRenderWhitespace, setShowEOL, setShowNonPrinting, setShowControlChars,
-    setIndentationGuides, setColumnSelectMode, setSplitView,
+    setShowSidebar,
+    setRenderWhitespace, setShowEOL, setShowNonPrinting, setShowControlChars,
+    setIndentationGuides, setColumnSelectMode,
   } = useUIStore()
   const dynamicMenuItems = usePluginStore((s) => s.dynamicMenuItems)
   // Reactive active-buffer encoding/EOL so the Encoding menu shows a checkmark
@@ -135,15 +139,15 @@ export function MenuBar({
       { label: '&Reload from Disk', icon: <RotateCcw size={18} />, shortcut: `${mod}+R`, action: onReload },
       { label: 'Rec&ent Files', icon: <Clock size={18} />, submenu: recentFilesSubmenu },
       { separator: true, label: '' },
-      { label: '&Print...', icon: <Printer size={18} />, shortcut: `${mod}+${alt}+P`, action: editorCmd('printDocument') },
-      { label: 'Export to P&DF...', icon: <FileDown size={18} />, action: editorCmd('exportPdf') },
+      { label: '&Print...', icon: <Printer size={18} />, shortcut: `${mod}+${alt}+P`, action: cmd('file.print') },
+      { label: 'Export to P&DF...', icon: <FileDown size={18} />, action: cmd('file.exportPdf') },
       { separator: true, label: '' },
       { label: '&Close File', icon: <X size={18} />, shortcut: `${mod}+W`, action: onClose },
       { label: 'Close All Fi&les', action: onCloseAll },
     ],
     Edit: [
-      { label: '&Undo', icon: <Undo2 size={18} />, shortcut: `${mod}+Z`, action: () => window.dispatchEvent(new CustomEvent('editor:undo')) },
-      { label: '&Redo', icon: <Redo2 size={18} />, shortcut: `${mod}+Y`, action: () => window.dispatchEvent(new CustomEvent('editor:redo')) },
+      { label: '&Undo', icon: <Undo2 size={18} />, shortcut: `${mod}+Z`, action: editorCmd('undo') },
+      { label: '&Redo', icon: <Redo2 size={18} />, shortcut: `${mod}+Y`, action: editorCmd('redo') },
       { separator: true, label: '' },
       { label: 'Cu&t', icon: <Scissors size={18} />, shortcut: `${mod}+X`, action: () => document.execCommand('cut') },
       { label: '&Copy', icon: <Copy size={18} />, shortcut: `${mod}+C`, action: () => document.execCommand('copy') },
@@ -152,80 +156,76 @@ export function MenuBar({
       { label: 'Select &All', icon: <SquareDashedMousePointer size={18} />, shortcut: `${mod}+A`, action: () => document.execCommand('selectAll') },
       {
         label: '&Begin/End Select', submenu: [
-          { label: '&Select', shortcut: `${mod}+Shift+B`, disabled: true, action: editorCmd('beginEndSelect') },
-          { label: 'Co&lumn Mode', shortcut: `${mod}+Shift+${alt}+B`, disabled: true, action: editorCmd('beginEndSelectColumn') },
+          { label: '&Select', shortcut: `${mod}+Shift+B`, action: cmd('edit.beginEndSelect') },
+          { label: 'Co&lumn Mode', shortcut: `${mod}+Shift+${alt}+B`, action: cmd('edit.beginEndSelectColumn') },
         ],
       },
       { separator: true, label: '' },
       {
         label: 'Line &Operations', submenu: [
-          { label: '&Duplicate Line', shortcut: `${mod}+D`, action: editorCmd('duplicateLine') },
-          { label: 'De&lete Line', shortcut: `${mod}+Shift+K`, action: editorCmd('deleteLine') },
-          { label: 'Move Line &Up', shortcut: `${alt}+Up`, action: editorCmd('moveLineUp') },
-          { label: 'Move Line Dow&n', shortcut: `${alt}+Down`, action: editorCmd('moveLineDown') },
+          { label: '&Duplicate Line', shortcut: `${mod}+D`, action: cmd('edit.duplicateLine') },
+          { label: 'De&lete Line', shortcut: `${mod}+Shift+K`, action: cmd('edit.deleteLine') },
+          { label: 'Move Line &Up', shortcut: `${alt}+Up`, action: cmd('edit.moveLineUp') },
+          { label: 'Move Line Dow&n', shortcut: `${alt}+Down`, action: cmd('edit.moveLineDown') },
           { separator: true, label: '' },
-          { label: 'Sort Lines &Ascending', action: editorCmd('sortLinesAsc') },
-          { label: 'Sort Lines Descendin&g', action: editorCmd('sortLinesDesc') },
+          { label: 'Sort Lines &Ascending', action: cmd('edit.sortLinesAsc') },
+          { label: 'Sort Lines Descendin&g', action: cmd('edit.sortLinesDesc') },
         ],
       },
       {
         label: 'Convert Cas&e (UPPER/lower)', submenu: [
-          { label: '&UPPERCASE', shortcut: `${mod}+Shift+U`, action: editorCmd('toUpperCase') },
-          { label: '&lowercase', shortcut: `${mod}+Shift+L`, action: editorCmd('toLowerCase') },
-          { label: '&Title Case', action: editorCmd('toTitleCase') },
+          { label: '&UPPERCASE', shortcut: `${mod}+Shift+U`, action: cmd('edit.toUpperCase') },
+          { label: '&lowercase', shortcut: `${mod}+Shift+L`, action: cmd('edit.toLowerCase') },
+          { label: '&Title Case', action: cmd('edit.toTitleCase') },
         ],
       },
       { separator: true, label: '' },
       {
         label: 'Cop&y to Clipboard', submenu: [
-          { label: 'Current Full File &Path', action: editorCmd('copyFullPath') },
-          { label: 'Current File &Name', action: editorCmd('copyFileName') },
-          { label: 'Current &Directory Path', action: editorCmd('copyDirPath') },
+          { label: 'Current Full File &Path', action: cmd('edit.copyFullPath') },
+          { label: 'Current File &Name', action: cmd('edit.copyFileName') },
+          { label: 'Current &Directory Path', action: cmd('edit.copyDirPath') },
         ],
       },
       {
         label: 'In&sert', submenu: [
-          { label: 'Date && Time — &Short', action: editorCmd('insertDateTimeShort') },
-          { label: 'Date && Time — &Long', action: editorCmd('insertDateTimeLong') },
+          { label: 'Date && Time — &Short', action: cmd('edit.insertDateTimeShort') },
+          { label: 'Date && Time — &Long', action: cmd('edit.insertDateTimeLong') },
         ],
       },
       { separator: true, label: '' },
-      { label: 'Toggle Co&mment', shortcut: `${mod}+/`, action: editorCmd('toggleComment') },
-      { label: 'Toggle Bloc&k Comment', shortcut: `${mod}+Shift+/`, action: editorCmd('toggleBlockComment') },
+      { label: 'Toggle Co&mment', shortcut: `${mod}+/`, action: cmd('edit.toggleComment') },
+      { label: 'Toggle Bloc&k Comment', shortcut: `${mod}+Shift+/`, action: cmd('edit.toggleBlockComment') },
       { separator: true, label: '' },
-      { label: 'Tri&m Trailing Whitespace', action: editorCmd('trimTrailingWhitespace') },
-      { label: 'Beauti&fy', shortcut: `${mod}+${alt}+Shift+M`, action: editorCmd('beautify') },
-      { label: 'Trans&form', shortcut: `${mod}+${alt}+Shift+K`, action: editorCmd('transformToDiagram') },
-      { label: 'Dedu&plicate', shortcut: `${mod}+${alt}+Shift+C`, action: editorCmd('removeDuplicates') },
-      { label: '&Indent Selection', shortcut: 'Tab', action: editorCmd('indentSelection') },
-      { label: 'Out&dent Selection', shortcut: 'Shift+Tab', action: editorCmd('outdentSelection') },
+      { label: 'Tri&m Trailing Whitespace', action: cmd('edit.trimTrailingWhitespace') },
+      { label: 'Beauti&fy', shortcut: `${mod}+${alt}+Shift+M`, action: cmd('edit.beautify') },
+      { label: 'Trans&form', shortcut: `${mod}+${alt}+Shift+K`, action: cmd('edit.transformSchema') },
+      { label: 'Dedu&plicate', shortcut: `${mod}+${alt}+Shift+C`, action: cmd('edit.removeDuplicates') },
+      { label: '&Indent Selection', shortcut: 'Tab', action: cmd('edit.indent') },
+      { label: 'Out&dent Selection', shortcut: 'Shift+Tab', action: cmd('edit.outdent') },
     ],
     Search: [
       { label: '&Find...', icon: <Search size={18} />, shortcut: `${mod}+F`, action: onFind },
       { label: '&Replace...', icon: <Replace size={18} />, shortcut: `${mod}+H`, action: onReplace },
       { label: 'Find in F&iles...', icon: <FolderSearch size={18} />, shortcut: `${mod}+Shift+F`, action: onFindInFiles },
       { separator: true, label: '' },
-      { label: '&Go to Line...', shortcut: `${mod}+G`, action: editorCmd('goToLine') },
+      { label: 'Command Pa&lette...', icon: <TerminalIcon size={18} />, shortcut: `${mod}+Shift+P`, action: cmd('search.commandPalette') },
+      { label: 'Go to Fil&e...', shortcut: `${mod}+E`, action: cmd('search.goToFile') },
       { separator: true, label: '' },
-      { label: '&Toggle Bookmark', shortcut: `${mod}+F2`, action: editorCmd('toggleBookmark') },
-      { label: '&Next Bookmark', shortcut: 'F2', action: editorCmd('nextBookmark') },
-      { label: '&Previous Bookmark', shortcut: 'Shift+F2', action: editorCmd('prevBookmark') },
-      { label: '&Clear All Bookmarks', action: editorCmd('clearBookmarks') },
+      { label: '&Go to Line...', shortcut: `${mod}+G`, action: cmd('search.goToLine') },
+      { separator: true, label: '' },
+      { label: '&Toggle Bookmark', shortcut: `${mod}+F2`, action: cmd('search.toggleBookmark') },
+      { label: '&Next Bookmark', shortcut: 'F2', action: cmd('search.nextBookmark') },
+      { label: '&Previous Bookmark', shortcut: 'Shift+F2', action: cmd('search.prevBookmark') },
+      { label: '&Clear All Bookmarks', action: cmd('search.clearBookmarks') },
     ],
     View: [
-      { label: showToolbar ? 'Hide &Toolbar' : 'Show &Toolbar', action: () => setShowToolbar(!showToolbar) },
-      { label: showStatusBar ? 'Hide &Status Bar' : 'Show &Status Bar', action: () => setShowStatusBar(!showStatusBar) },
-      { label: showSidebar ? 'Hide Side&bar' : 'Show Side&bar', icon: showSidebar ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />, shortcut: `${mod}+B`, action: () => setShowSidebar(!showSidebar) },
-      { label: 'Pre&view', shortcut: `${mod}+P`, action: editorCmd('togglePreview') },
+      { label: showToolbar ? 'Hide &Toolbar' : 'Show &Toolbar', action: cmd('view.toggleToolbar') },
+      { label: showStatusBar ? 'Hide &Status Bar' : 'Show &Status Bar', action: cmd('view.toggleStatusBar') },
+      { label: showSidebar ? 'Hide Side&bar' : 'Show Side&bar', icon: showSidebar ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />, shortcut: `${mod}+B`, action: cmd('view.toggleSidebar') },
+      { label: 'Pre&view', shortcut: `${mod}+P`, action: cmd('view.preview') },
       { separator: true, label: '' },
-      {
-        label: '&Word Wrap', shortcut: `${alt}+Z`, checked: wordWrap,
-        action: () => {
-          const v = !wordWrap
-          setWordWrap(v)
-          window.dispatchEvent(new CustomEvent('editor:set-option-local', { detail: { wordWrap: v ? 'on' : 'off' } }))
-        },
-      },
+      { label: '&Word Wrap', shortcut: `${alt}+Z`, checked: wordWrap, action: cmd('view.wordWrap') },
       (() => {
         const setSpaceTab = (v: boolean) => {
           setRenderWhitespace(v)
@@ -281,14 +281,14 @@ export function MenuBar({
         },
       },
       { separator: true, label: '' },
-      { label: 'Zoom &In', shortcut: `${mod}+=`, action: editorCmd('zoomIn') },
-      { label: 'Zoom &Out', shortcut: `${mod}+-`, action: editorCmd('zoomOut') },
-      { label: '&Reset Zoom', shortcut: `${mod}+0`, action: editorCmd('zoomReset') },
+      { label: 'Zoom &In', shortcut: `${mod}+=`, action: cmd('view.zoomIn') },
+      { label: 'Zoom &Out', shortcut: `${mod}+-`, action: cmd('view.zoomOut') },
+      { label: '&Reset Zoom', shortcut: `${mod}+0`, action: cmd('view.zoomReset') },
       { separator: true, label: '' },
       {
         label: '&Folding', submenu: [
-          { label: 'Fold &All', action: editorCmd('foldAll') },
-          { label: '&Unfold All', action: editorCmd('unfoldAll') },
+          { label: 'Fold &All', action: cmd('view.foldAll') },
+          { label: '&Unfold All', action: cmd('view.unfoldAll') },
           { separator: true, label: '' },
           {
             label: 'Collapse &Level', submenu: [1, 2, 3, 4, 5, 6, 7].map((n) => ({
@@ -298,7 +298,7 @@ export function MenuBar({
         ],
       },
       { separator: true, label: '' },
-      { label: 'S&plit View', shortcut: `${mod}+\\`, checked: splitView, action: () => setSplitView(!splitView) },
+      { label: 'S&plit View', shortcut: `${mod}+\\`, checked: splitView, action: cmd('view.splitView') },
     ],
     Encoding: (() => {
       // Mirror the status-bar pickers: dispatching these CustomEvents is what
@@ -325,7 +325,7 @@ export function MenuBar({
       ]
     })(),
     Tools: (() => {
-      const openTool = (id: string) => useUIStore.getState().openTool(id)
+      const openTool = (id: string) => runCommand(`tools.open.${id}`)
       const hashMenu = (algo: (typeof HASH_ALGOS)[number]['id']): MenuItem[] => [
         { label: '&Generate...', action: () => openHashGenerator(algo) },
         { label: 'Generate from &files...', action: () => { void hashFromFiles(algo) } },
@@ -358,69 +358,55 @@ export function MenuBar({
         {
           label: '&Notes',
           shortcut: `${shortcutMod()}+Shift+N`,
-          action: () => useUIStore.getState().toggleNotesPanel(),
+          action: cmd('view.notes'),
         },
         {
+          // The registry handler is the one that knows to send the user to
+          // Settings rather than toggle a panel they haven't enabled yet.
           label: '&AI Assistant',
           shortcut: `${shortcutMod()}+Shift+A`,
-          action: () => {
-            // Off means "not set up yet" — send the user somewhere useful rather
-            // than toggling a panel they can't use.
-            if (!useConfigStore.getState().aiEnabled) {
-              useUIStore.getState().setPendingSettingsCategory('ai')
-              useEditorStore.getState().openVirtualTab('settings')
-              return
-            }
-            useAiStore.getState().togglePanel()
-          },
+          action: cmd('view.aiAssistant'),
         },
       ]
     })(),
     Plugins: [
       {
         label: '&Plugin Manager...',
-        action: () => useEditorStore.getState().openPluginManagerTab()
+        action: cmd('plugins.manager')
       },
       ...(dynamicPluginMenu.length > 0
         ? [{ separator: true, label: '' } as MenuItem, ...dynamicPluginMenu]
         : []),
     ],
     Settings: (() => {
-      const openCategory = (cat: string | null) => {
-        if (cat) useUIStore.getState().setPendingSettingsCategory(cat)
-        useEditorStore.getState().openVirtualTab('settings')
-      }
-      const toggleTheme = () => {
-        useUIStore.getState().toggleTheme()
-        useConfigStore.getState().setProp('theme', useUIStore.getState().theme)
-      }
       const themeLabel = theme === 'dark' ? 'Toggle &Light Mode' : 'Toggle &Dark Mode'
       const ThemeIcon = theme === 'dark' ? Sun : Moon
       return [
-        { label: '&Settings...', icon: <SettingsIcon size={18} />, shortcut: `${mod}+,`, action: () => openCategory(null) },
+        { label: '&Settings...', icon: <SettingsIcon size={18} />, shortcut: `${mod}+,`, action: cmd('prefs.settings') },
         { separator: true, label: '' },
-        { label: '&General', action: () => openCategory('general') },
-        { label: '&Editor', action: () => openCategory('editor') },
-        { label: '&Appearance', action: () => openCategory('appearance') },
-        { label: '&New Document', action: () => openCategory('newDoc') },
-        { label: '&Backup', action: () => openCategory('backup') },
-        { label: 'Auto-Co&mpletion', action: () => openCategory('completion') },
-        { label: '&Keyboard Shortcuts', icon: <Keyboard size={18} />, action: () => openCategory('shortcuts') },
+        { label: '&General', action: cmd('settings.open.general') },
+        { label: '&Editor', action: cmd('settings.open.editor') },
+        { label: '&Appearance', action: cmd('settings.open.appearance') },
+        { label: '&New Document', action: cmd('settings.open.newDoc') },
+        { label: '&Backup', action: cmd('settings.open.backup') },
+        { label: 'Auto-Co&mpletion', action: cmd('settings.open.completion') },
+        { label: '&Keyboard Shortcuts', icon: <Keyboard size={18} />, action: cmd('settings.open.shortcuts') },
         { separator: true, label: '' },
-        { label: themeLabel, icon: <ThemeIcon size={18} />, action: toggleTheme },
+        { label: themeLabel, icon: <ThemeIcon size={18} />, action: cmd('prefs.toggleTheme') },
       ]
     })(),
     Window: [
       { label: '&Minimize', action: () => window.dispatchEvent(new CustomEvent('window:minimize')) },
       { label: '&Zoom', action: () => window.dispatchEvent(new CustomEvent('window:zoom')) },
       { separator: true, label: '' },
-      { label: '&Next Tab', shortcut: `${mod}+Tab`, action: () => window.dispatchEvent(new CustomEvent('tab:next-local')) },
-      { label: '&Previous Tab', shortcut: `${mod}+Shift+Tab`, action: () => window.dispatchEvent(new CustomEvent('tab:prev-local')) },
+      { label: '&Next Tab', shortcut: `${mod}+Tab`, action: cmd('window.nextTab') },
+      { label: '&Previous Tab', shortcut: `${mod}+Shift+Tab`, action: cmd('window.prevTab') },
     ],
     Help: [
-      { label: '&About NovaPad', action: () => useUIStore.getState().setShowAbout(true) },
+      { label: "&What's New", action: cmd('help.whatsNew') },
+      { label: '&About NovaPad', action: cmd('help.about') },
       { separator: true, label: '' },
-      { label: '&Check for Updates...', action: () => { void window.api.update.check() } },
+      { label: '&Check for Updates...', action: cmd('help.checkForUpdates') },
       { separator: true, label: '' },
       { label: 'Open Dev&Tools', shortcut: 'F12', action: () => window.api.send('dev:toggle-devtools') },
     ],

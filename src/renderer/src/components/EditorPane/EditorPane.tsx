@@ -125,6 +125,24 @@ export const EditorPane: React.FC<EditorPaneProps> = ({ activeId }) => {
       case 'trimTrailingWhitespace':
         editor.getAction('editor.action.trimTrailingWhitespace')?.run()
         break
+      // Tab / Shift+Tab already indent a selection natively; these exist so the
+      // menu and palette entries reach the same Monaco actions. The keyboard
+      // dispatcher deliberately never claims bare Tab (see commands/useCommandKeys).
+      case 'indentSelection':
+        editor.trigger('command', 'editor.action.indentLines', null)
+        break
+      case 'outdentSelection':
+        editor.trigger('command', 'editor.action.outdentLines', null)
+        break
+      // Undo / Redo reach Monaco's own history. The native menu uses OS roles for
+      // these; the custom MenuBar and Toolbar route here instead, since a role's
+      // accelerator is the only part of it that works on a hidden Windows menu.
+      case 'undo':
+        editor.trigger('command', 'undo', null)
+        break
+      case 'redo':
+        editor.trigger('command', 'redo', null)
+        break
       case 'goToLine':
         editor.getAction('editor.action.gotoLine')?.run()
         break

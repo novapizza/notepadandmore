@@ -17,7 +17,7 @@ import { StatusBar } from './components/StatusBar/StatusBar'
 import { BottomPanelContainer } from './components/Panels/BottomPanelContainer'
 import { FindReplaceDialog } from './components/Dialogs/FindReplace/FindReplaceDialog'
 import { AboutDialog } from './components/Dialogs/AboutDialog/AboutDialog'
-import { QuickOpenPalette } from './components/QuickOpen/QuickOpenPalette'
+import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { ToolsPanel } from './components/Tools/ToolsPanel'
 import { openHashGenerator, hashFromFiles, hashSelectionToClipboard, type HashAlgo } from './lib/tools/hashActions'
 import { Sidebar } from './components/Sidebar/Sidebar'
@@ -63,8 +63,8 @@ import { useBackupSnapshot } from './hooks/useBackupSnapshot'
 import { mintBackupFilename } from './utils/backupNaming'
 import { backupApi } from './utils/backupApi'
 import { editorRegistry } from './utils/editorRegistry'
-
-const toggleNotes = (): void => useUIStore.getState().toggleNotesPanel()
+import { fileOpsRegistry } from './commands/fileOpsRegistry'
+import { useCommandKeys } from './commands/useCommandKeys'
 
 export default function App() {
   const { activeId, buffers } = useEditorStore()
@@ -86,22 +86,12 @@ export default function App() {
     }
   }, [activeId])
 
-  // Quick Open (Ctrl/Cmd+Shift+P) — handle in the capture phase on documentElement
-  // so it fires app-wide regardless of focus, beating Monaco's internal keybindings
-  // (the native menu accelerator alone gets swallowed when the editor is focused).
-  // Plain Ctrl/Cmd+P is intentionally left to fall through to Preview.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = window.api.platform === 'darwin' ? e.metaKey : e.ctrlKey
-      if (mod && e.shiftKey && !e.altKey && (e.key === 'p' || e.key === 'P')) {
-        e.preventDefault()
-        e.stopPropagation()
-        useUIStore.getState().setQuickOpenVisible(true)
-      }
-    }
-    document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
-    return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
-  }, [])
+  // Every keyboard shortcut in the app resolves through this one hook against the
+  // command registry, honouring config.shortcuts overrides. It replaces the three
+  // bespoke capture-phase listeners that used to live here (Quick Open, AI
+  // Assistant, Notes) — each of which double-fired with its own native menu
+  // accelerator whenever focus sat outside Monaco.
+  useCommandKeys()
 
   // AI assistant streaming. Subscribed once here rather than in the panel so
   // chunks keep landing in the transcript even if the user closes the panel
@@ -128,40 +118,6 @@ export default function App() {
     }
   }, [])
 
-  // Toggle the assistant from the keyboard. Handled in the capture phase for the
-  // same reason as Quick Open: a native menu accelerator alone gets swallowed
-  // while Monaco has focus. Mod+Shift+A rather than Mod+Shift+I, which Electron
-  // reserves for DevTools.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = window.api.platform === 'darwin' ? e.metaKey : e.ctrlKey
-      if (mod && e.shiftKey && !e.altKey && (e.key === 'a' || e.key === 'A')) {
-        if (!useConfigStore.getState().aiEnabled) return
-        e.preventDefault()
-        e.stopPropagation()
-        useAiStore.getState().togglePanel()
-      }
-    }
-    document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
-    return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
-  }, [])
-
-  // Toggle the Notes panel from the keyboard. Capture phase for the same reason
-  // as Quick Open and the assistant: while Monaco has focus the native menu
-  // accelerator alone gets swallowed. The !altKey guard keeps Mod+Alt+Shift+N
-  // free for a future binding.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = window.api.platform === 'darwin' ? e.metaKey : e.ctrlKey
-      if (mod && e.shiftKey && !e.altKey && (e.key === 'n' || e.key === 'N')) {
-        e.preventDefault()
-        e.stopPropagation()
-        toggleNotes()
-      }
-    }
-    document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
-    return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
-  }, [])
   // The right-side preview pane renders when the user toggled showPreview AND
   // the active buffer's type is one we know how to preview. The pane
   // component is decided per-buffer so switching tabs swaps the preview.
@@ -194,7 +150,14 @@ export default function App() {
   const editorPaneCount = 1 + (splitVisible ? 1 : 0) + (previewVisible ? 1 : 0) + (aiPanelVisible ? 1 : 0)
   const editorContentSize = editorPaneCount === 1 ? 100 : editorPaneCount === 2 ? 55 : editorPaneCount === 3 ? 40 : 34
   const sidePaneSize = Math.round((100 - editorContentSize) / Math.max(1, editorPaneCount - 1))
-  const { openFiles, openRemoteFile, openInlineContent, newFile, saveBuffer, saveActiveAs, closeBuffer, reloadBuffer, loadBuffer, restoreSession } = useFileOps()
+  const fileOps = useFileOps()
+  const { openFiles, openRemoteFile, openInlineContent, newFile, saveBuffer, saveActiveAs, closeBuffer, reloadBuffer, loadBuffer, restoreSession } = fileOps
+  // Bridge the hook's handle out to the command registry, whose handlers are
+  // plain functions and can't call a hook. Same pattern as editorRegistry.
+  useEffect(() => {
+    fileOpsRegistry.set(fileOps)
+    return () => fileOpsRegistry.set(null)
+  }, [fileOps])
   // Close every tab one at a time. closeBuffer raises a modal confirm per dirty
   // buffer, so closing them in parallel would stack N native dialogs at once.
   const closeAllBuffers = useCallback(async () => {
@@ -393,7 +356,8 @@ export default function App() {
       useUIStore.getState().setShowSidebar(true)
       useUIStore.getState().setSidebarPanel('files')
     })
-    window.api.on('menu:goto-file', () => useUIStore.getState().setQuickOpenVisible(true))
+    window.api.on('menu:goto-file', () => useUIStore.getState().setCommandPalette('files'))
+    window.api.on('menu:command-palette', () => useUIStore.getState().setCommandPalette('commands'))
     window.api.on('ui:toggle-theme', () => {
       useUIStore.getState().toggleTheme()
       useConfigStore.getState().setProp('theme', useUIStore.getState().theme)
@@ -402,7 +366,7 @@ export default function App() {
     window.api.on('ui:toggle-statusbar', (...args) => useUIStore.getState().setShowStatusBar(args[0] as boolean, true))
     window.api.on('ui:toggle-sidebar', (...args) => useUIStore.getState().setShowSidebar(args[0] as boolean, true))
     window.api.on('ui:toggle-split-view', (...args) => useUIStore.getState().setSplitView(args[0] as boolean, true))
-    window.api.on('ui:toggle-notes', () => toggleNotes())
+    window.api.on('ui:toggle-notes', () => useUIStore.getState().toggleNotesPanel())
     window.api.on('ui:show-toast', (...args) => {
       useUIStore.getState().addToast(args[0] as string, (args[1] as 'info' | 'warn' | 'error') ?? 'info')
     })
@@ -674,6 +638,7 @@ export default function App() {
       window.api.off('app:before-close')
       window.api.off('menu:folder-open')
       window.api.off('menu:goto-file')
+      window.api.off('menu:command-palette')
       window.api.off('file:externally-changed')
       window.api.off('file:externally-deleted')
       window.api.off('menu:plugin-manager')
@@ -909,7 +874,7 @@ export default function App() {
 
       <FindReplaceDialog />
       <AboutDialog />
-      <QuickOpenPalette />
+      <CommandPalette />
       <ToolsPanel />
       {csvViewerOpen && <CsvViewerOverlay csvText={csvViewerText} fileName={csvViewerFileName} />}
       {compareOpen && (
