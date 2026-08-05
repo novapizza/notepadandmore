@@ -58,7 +58,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@tanstack/react-virtual": "^3.13.23",
+    "@tanstack/react-virtual": "^3.14.2",
     "adm-zip": "^0.5.17",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
