@@ -86,7 +86,17 @@ const SOLARIZED_LIGHT_TOKENS: Record<string, string> = {
   '--tok-bool': '237 43% 55%',
   '--tok-null': '186 8% 50%',
   '--tok-num': '18 80% 44%',
-  '--tok-brace': '196 13% 45%'
+  '--tok-brace': '196 13% 45%',
+  // Sticky-note tints. The :root tints are tuned against a white --card;
+  // Solarized's is cream (44 87% 94%), so these are re-tuned onto Solarized's
+  // own accent hues to stop them reading as cold patches on a warm surface.
+  // Listing them here also enrols them in ALL_TOKEN_KEYS, so switching away
+  // from Solarized clears them rather than leaking into the next theme.
+  '--note-yellow': '45 60% 85%',
+  '--note-green': '68 35% 84%',
+  '--note-blue': '205 45% 87%',
+  '--note-pink': '331 40% 89%',
+  '--note-purple': '237 35% 88%'
 }
 
 export const THEMES: ThemeDef[] = [

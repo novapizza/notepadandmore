@@ -27,7 +27,10 @@ interface SessionVirtualTab {
   pluginId?: string           // set only for 'pluginDetail'
 }
 
-type SidebarPanel = 'files' | 'search' | 'plugins'
+/** Must stay in sync with UIState['sidebarPanel'] in store/uiStore.ts. When these
+ *  drifted, 'functions' and 'docmap' silently failed to restore — the validator
+ *  below rejected them and the value fell back to 'files'. */
+type SidebarPanel = 'files' | 'search' | 'plugins' | 'functions' | 'docmap'
 
 interface Session {
   version: number
@@ -39,11 +42,14 @@ interface Session {
   sidebarVisible?: boolean
   /** Which sidebar panel was active at save time. */
   sidebarPanel?: SidebarPanel
+  /** Whether the Notes view was expanded at the bottom of the sidebar. */
+  notesVisible?: boolean
   /** Paths of folders expanded in the File Browser tree. */
   expandedFolders?: string[]
 }
 
-const KNOWN_SIDEBAR_PANELS: ReadonlySet<SidebarPanel> = new Set(['files', 'search', 'plugins'])
+const KNOWN_SIDEBAR_PANELS: ReadonlySet<SidebarPanel> =
+  new Set(['files', 'search', 'plugins', 'functions', 'docmap'])
 
 const KNOWN_VIRTUAL_KINDS: ReadonlySet<SessionVirtualKind> = new Set(['settings', 'shortcuts', 'whatsNew', 'pluginManager', 'pluginDetail'])
 
@@ -128,6 +134,7 @@ export class SessionManager {
     const activeIndex = typeof obj.activeIndex === 'number' ? obj.activeIndex : 0
     const workspaceFolder = typeof obj.workspaceFolder === 'string' ? obj.workspaceFolder : undefined
     const sidebarVisible = typeof obj.sidebarVisible === 'boolean' ? obj.sidebarVisible : undefined
+    const notesVisible = typeof obj.notesVisible === 'boolean' ? obj.notesVisible : undefined
     const sidebarPanel = typeof obj.sidebarPanel === 'string' && KNOWN_SIDEBAR_PANELS.has(obj.sidebarPanel as SidebarPanel)
       ? (obj.sidebarPanel as SidebarPanel)
       : undefined
@@ -166,6 +173,7 @@ export class SessionManager {
       workspaceFolder,
       sidebarVisible,
       sidebarPanel,
+      notesVisible,
       expandedFolders
     }
   }

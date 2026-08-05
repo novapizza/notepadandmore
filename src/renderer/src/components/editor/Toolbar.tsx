@@ -6,7 +6,7 @@ import {
   ZoomIn, ZoomOut, RotateCcw,
   IndentIncrease, IndentDecrease, MessageSquare,
   ArrowUpDown, Eraser,
-  Files, ListTree, Map as MapIcon,
+  Files, ListTree, Map as MapIcon, StickyNote,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { editorRegistry } from '../../utils/editorRegistry'
@@ -119,6 +119,9 @@ export function Toolbar({ onNew, onOpen, onSave, onSaveAll, onFind, onReplace, o
       { icon: <Files size={sz} />, title: `Explorer (${mod}+B)`, action: () => toggleSidebarPanel('files'), color: C_BLUE },
       { icon: <ListTree size={sz} />, title: 'Function / Symbol List', action: () => toggleSidebarPanel('functions'), color: C_PURPLE },
       { icon: <MapIcon size={sz} />, title: 'Document Map', action: () => toggleSidebarPanel('docmap'), color: C_GREEN },
+      // Notes stacks below the active panel rather than replacing it, so it goes
+      // through toggleNotesPanel instead of toggleSidebarPanel.
+      { icon: <StickyNote size={sz} />, title: `Notes (${mod}+Shift+N)`, action: () => useUIStore.getState().toggleNotesPanel(), color: C_ORANGE },
     ],
   ]
 

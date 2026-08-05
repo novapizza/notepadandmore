@@ -32,7 +32,11 @@ export interface SessionData {
   activeIndex: number
   workspaceFolder?: string
   sidebarVisible?: boolean
-  sidebarPanel?: 'files' | 'search' | 'plugins'
+  /** Must match UIState['sidebarPanel'] in store/uiStore.ts and SidebarPanel in
+   *  main/sessions/SessionManager.ts — main only ever sends values from that set. */
+  sidebarPanel?: 'files' | 'search' | 'plugins' | 'functions' | 'docmap'
+  /** Whether the stacked Notes view was expanded at save time. */
+  notesVisible?: boolean
   expandedFolders?: string[]
 }
 

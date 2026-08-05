@@ -10,6 +10,30 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+### Added
+- **Sticky Notes.** A new *Notes* view (`Ctrl/Cmd+Shift+N`, the sticky-note icon at the right end of the
+  toolbar, or *Tools ▸ Notes*) holds short plain-text notes that save themselves as you type and
+  persist across restarts. It stacks **below** the File Explorer with a draggable divider rather than
+  replacing it, so opening Notes never costs you the file tree, and each view has its own ✕. Notes are never documents: they don't occupy a tab, never show a dirty
+  indicator, and never raise a save prompt on quit. Create, edit, pin, tint (six theme-resolved colours),
+  delete, and filter by title or body. Stored in `notes.json` in the app's config folder as **plain,
+  unencrypted text**.
+- **Send Selection to Note.** An editor context-menu action that copies the current selection into a new
+  note, tagged with the buffer's language. The document is not modified.
+- **Insert Note at Cursor.** Drops a note's body at the cursor, replacing the selection if there is one, as
+  a single undoable edit. Disabled when no editable file buffer is active.
+- **Open Note as Tab.** Graduates a note into an ordinary untitled buffer with the note's language applied.
+  The note stays in the panel; the tab is a snapshot.
+- `view.notes` is registered in *Settings ▸ Keyboard Shortcuts* under **View**.
+
+### Fixed
+- **The sidebar now reopens on the panel you left it on.** *Symbols* and *Document Map* silently fell back
+  to *File Browser* after a restart because the session validator's panel allowlist had drifted from the
+  set of panels that actually exist.
+- **App config is written atomically.** `config.json` and `notes.json` are now written to a temp file in the
+  same directory and renamed over the target, so a crash or power loss mid-write leaves the previous
+  contents intact instead of a truncated file.
+
 ## [1.6.0]
 
 ### Added

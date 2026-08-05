@@ -69,6 +69,42 @@ export const RELEASE_NOTES: ReleaseNote[] = [
             file at a time now, instead of stacking every prompt on top of each other.
           </>
         )
+      },
+      {
+        title: 'Sticky Notes — a scratchpad that never becomes a tab',
+        body: (
+          <>
+            Press <span className="font-mono text-sm">Ctrl/Cmd+Shift+N</span> (or use <strong>Tools ▸ Notes</strong>,
+            or the new sticky-note icon at the right end of the toolbar) for a <strong>Notes</strong> view in
+            the sidebar. It stacks <strong>below the File Explorer</strong> with a draggable divider instead of
+            replacing it, so opening Notes never costs you the file tree. Notes save themselves
+            as you type, survive a restart, and never occupy a tab, show a dirty dot, or prompt you on quit —
+            so a clipboard fragment or a reminder no longer has to live in an untitled document.
+            <br />
+            <br />
+            Notes bridge to the editor three ways: right-click a selection and pick{' '}
+            <strong>Send Selection to Note</strong> to park it, <strong>Insert at Cursor</strong> to drop a note
+            into the document (a single <span className="font-mono text-sm">Ctrl+Z</span> undoes it), and{' '}
+            <strong>Open as Tab</strong> when a note outgrows the panel and should become a real file. You can
+            pin notes to the top, tint them one of six colours, and filter by title or body.
+            <br />
+            <br />
+            Notes are stored as <strong>plain, unencrypted text</strong> in{' '}
+            <span className="font-mono text-sm">notes.json</span> in the app&apos;s config folder — treat them
+            like a paper pad, not a password manager.
+          </>
+        )
+      },
+      {
+        title: 'Sidebar and config-write fixes',
+        body: (
+          <>
+            The sidebar now reopens on the panel you left it on. <em>Symbols</em> and <em>Map</em> previously
+            fell back to <em>File Browser</em> after a restart. Settings and notes are also written
+            <strong> atomically</strong> now (write-then-rename), so a crash or power loss mid-write can no
+            longer leave a truncated <span className="font-mono text-sm">config.json</span>.
+          </>
+        )
       }
     ]
   },

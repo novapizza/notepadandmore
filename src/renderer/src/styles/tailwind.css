@@ -104,6 +104,15 @@
     --tok-null:   215 10% 45%;
     --tok-num:     24 85% 45%;
     --tok-brace:  215 15% 35%;
+
+    /* Sticky-note tints. Low-saturation backgrounds only — note text keeps
+     * text-foreground, so these must stay light enough for dark body text.
+     * The 'default' tint reuses --card and has no variable of its own. */
+    --note-yellow:  48 90% 88%;
+    --note-green:  142 45% 86%;
+    --note-blue:   210 75% 89%;
+    --note-pink:   340 70% 91%;
+    --note-purple: 265 60% 91%;
   }
 
   .dark {
@@ -173,6 +182,14 @@
     --tok-null:   225 27% 65%;         /* comment */
     --tok-num:    265 89% 78%;         /* purple #bd93f9 */
     --tok-brace:   60 30% 90%;
+
+    /* Sticky-note tints, dark variant. Desaturated and darkened to sit just
+     * above --card (232 14% 21%) so light body text stays readable. */
+    --note-yellow:  48 25% 28%;
+    --note-green:  142 22% 26%;
+    --note-blue:   210 30% 29%;
+    --note-pink:   335 25% 30%;
+    --note-purple: 265 28% 31%;
   }
 }
 

@@ -65,6 +65,7 @@ export const SHORTCUT_CATALOG: ShortcutDef[] = [
   { id: 'view.zoomReset',     label: 'Reset Zoom',     section: 'View', defaultKey: 'Mod+0' },
   // Mod+Shift+A, not Mod+Shift+I — Electron reserves Ctrl/Cmd+Shift+I for DevTools.
   { id: 'view.aiAssistant',   label: 'AI Assistant',   section: 'View', defaultKey: 'Mod+Shift+A' },
+  { id: 'view.notes',         label: 'Notes',          section: 'View', defaultKey: 'Mod+Shift+N' },
 
   // Window
   { id: 'window.nextTab',  label: 'Next Tab',     section: 'Window', defaultKey: 'Mod+Tab' },

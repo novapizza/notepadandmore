@@ -56,12 +56,23 @@ export function registerConfigHandlers(): void {
     }
   })
 
+  // Atomic: write to a temp file in the SAME directory, then rename over the
+  // target. A crash or power loss mid-write leaves the previous file intact
+  // instead of a truncated one. The temp file must share the directory or
+  // rename() stops being atomic (it would cross filesystems).
   ipcMain.handle('config:write-raw', async (_event, name: string, content: string) => {
     ensureConfigDir()
     const fp = configPath(name)
     const dir = path.dirname(fp)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(fp, content, 'utf8')
+    const tmp = `${fp}.tmp-${process.pid}`
+    try {
+      fs.writeFileSync(tmp, content, 'utf8')
+      fs.renameSync(tmp, fp)
+    } catch (err) {
+      try { fs.unlinkSync(tmp) } catch { /* best effort */ }
+      throw err
+    }
   })
 
   ipcMain.handle('config:list-udl', async () => {

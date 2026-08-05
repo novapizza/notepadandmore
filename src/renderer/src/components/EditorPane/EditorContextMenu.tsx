@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import * as monaco from 'monaco-editor'
 import {
   ContextMenu,
@@ -14,6 +15,10 @@ import { shortcutMod } from '../../utils/platform'
 import { editorRegistry } from '../../utils/editorRegistry'
 import { useConfigStore } from '../../store/configStore'
 import { useAiStore } from '../../store/aiStore'
+import { useEditorStore } from '../../store/editorStore'
+import { useUIStore } from '../../store/uiStore'
+import { useNotesStore } from '../../store/notesStore'
+import { toast } from '../ui/sonner'
 
 const editorCmd = (cmd: string) =>
   window.dispatchEvent(new CustomEvent('editor:command', { detail: cmd }))
@@ -83,6 +88,28 @@ function openAiForSelection() {
   ai.openPanel()
 }
 
+/**
+ * Park the current selection in a sticky note. The document is never modified —
+ * this is a copy out, not a cut. The note carries the buffer's language so
+ * "Open as Tab" later graduates it with the right highlighting.
+ */
+function sendSelectionToNote() {
+  const ctx = getActiveSelection()
+  if (!ctx || ctx.sel.isEmpty()) return
+  const text = ctx.model.getValueInRange(ctx.sel)
+  if (!text) return
+  const editorState = useEditorStore.getState()
+  const language = editorState.buffers.find((b) => b.id === editorState.activeId)?.language ?? 'plaintext'
+  const id = useNotesStore.getState().createNote({ body: text, language })
+  if (!id) {
+    toast.error('Selection is too large for a note.')
+    return
+  }
+  // Reveal Notes without disturbing whichever panel is above it.
+  useUIStore.getState().revealNotes()
+  useNotesStore.getState().setEditingId(id)
+}
+
 interface EditorContextMenuProps {
   children: React.ReactNode
 }
@@ -90,8 +117,17 @@ interface EditorContextMenuProps {
 export function EditorContextMenu({ children }: EditorContextMenuProps) {
   const mod = shortcutMod()
   const aiEnabled = useConfigStore((s) => s.aiEnabled)
+  // Sampled when the menu opens: Monaco's selection can't be read reactively,
+  // and by open time the right-click has already settled the selection.
+  const [hasSelection, setHasSelection] = useState(false)
   return (
-    <ContextMenu>
+    <ContextMenu
+      onOpenChange={(open) => {
+        if (!open) return
+        const ctx = getActiveSelection()
+        setHasSelection(!!ctx && !ctx.sel.isEmpty())
+      }}
+    >
       <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
@@ -114,6 +150,12 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
         <ContextMenuItem onSelect={doSelectAll}>
           Select All
           <ContextMenuShortcut>{mod}+A</ContextMenuShortcut>
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuItem onSelect={sendSelectionToNote} disabled={!hasSelection}>
+          Send Selection to Note
         </ContextMenuItem>
 
         {aiEnabled && (

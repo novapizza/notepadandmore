@@ -30,7 +30,18 @@ interface UIState {
   indentationGuides: boolean
   columnSelectMode: boolean
   splitView: boolean
+  /** Keep in sync with the local unions in SideNav.tsx / Sidebar.tsx and with
+   *  SidebarPanel in main/sessions/SessionManager.ts.
+   *  Notes is deliberately NOT a member: it stacks below the active panel as its
+   *  own view (VS Code's Explorer/Outline layout) rather than replacing it. */
   sidebarPanel: 'files' | 'search' | 'plugins' | 'functions' | 'docmap'
+  /** Whether the Notes view is expanded at the bottom of the sidebar. Independent
+   *  of sidebarPanel, so opening Notes never closes the File Explorer. */
+  showNotes: boolean
+  /** Transient (not persisted): the Notes toggle is what opened the sidebar, so
+   *  collapsing Notes should hide it again rather than leaving behind a panel the
+   *  user never asked for. Cleared whenever the sidebar is hidden by other means. */
+  notesOpenedSidebar: boolean
   workspaceFolder: string | null
   /** Paths of folders currently expanded in the File Browser tree (persisted across sessions). */
   expandedFolders: string[]
@@ -121,6 +132,18 @@ interface UIState {
   setSplitView: (v: boolean, fromMain?: boolean) => void
   syncToggleToMain: (key: UIToggleKey, value: boolean) => void
   setSidebarPanel: (p: UIState['sidebarPanel']) => void
+  /** Raw setter — session restore only. Callers reacting to a user action want
+   *  revealNotes/hideNotes instead, so the sidebar bookkeeping stays correct. */
+  setShowNotes: (v: boolean) => void
+  /** Expand the Notes view, opening the sidebar if it was closed. */
+  revealNotes: () => void
+  /** Collapse the Notes view, restoring the sidebar to hidden if Notes is what
+   *  opened it. Leaves the panel above Notes untouched otherwise. */
+  hideNotes: () => void
+  /** Expand the Notes view (opening the sidebar if needed), or collapse it if
+   *  it's already showing — the panel above it is left alone either way. Lives
+   *  here so the keyboard, both menus, and the toolbar share one implementation. */
+  toggleNotesPanel: () => void
   setWorkspaceFolder: (path: string | null) => void
   setExpandedFolders: (paths: string[]) => void
   openFind: (mode?: 'find' | 'replace' | 'findInFiles' | 'mark', initialTerm?: string) => void
@@ -185,6 +208,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   columnSelectMode: false,
   splitView: false,
   sidebarPanel: 'files',
+  showNotes: false,
+  notesOpenedSidebar: false,
   workspaceFolder: null,
   expandedFolders: [],
   showFindReplace: false,
@@ -230,7 +255,9 @@ export const useUIStore = create<UIState>((set, get) => ({
     if (!fromMain) get().syncToggleToMain('showStatusBar', v)
   },
   setShowSidebar: (v, fromMain) => {
-    set({ showSidebar: v })
+    // Hiding the sidebar by any other route (Mod+B, the ✕, Show/Hide Explorer)
+    // invalidates the "Notes opened me" bookkeeping.
+    set(v ? { showSidebar: v } : { showSidebar: v, notesOpenedSidebar: false })
     if (!fromMain) get().syncToggleToMain('showSidebar', v)
   },
   setWordWrap: (v, fromMain) => {
@@ -266,6 +293,26 @@ export const useUIStore = create<UIState>((set, get) => ({
     if (!fromMain) get().syncToggleToMain('splitView', v)
   },
   setSidebarPanel: (p) => set({ sidebarPanel: p }),
+  setShowNotes: (v) => set({ showNotes: v }),
+  revealNotes: () => {
+    const s = get()
+    // Remember if we are the reason the sidebar is opening, so dismissing Notes
+    // is a true round-trip back to the previous layout. Don't clear an existing
+    // claim when the sidebar is already open on our behalf.
+    set({ showNotes: true, notesOpenedSidebar: s.notesOpenedSidebar || !s.showSidebar })
+    s.setShowSidebar(true)
+  },
+  hideNotes: () => {
+    const s = get()
+    set({ showNotes: false, notesOpenedSidebar: false })
+    if (s.notesOpenedSidebar) s.setShowSidebar(false)
+  },
+  toggleNotesPanel: () => {
+    const s = get()
+    // Collapse only the Notes view; whatever panel is above it stays put.
+    if (s.showNotes && s.showSidebar) s.hideNotes()
+    else s.revealNotes()
+  },
   setWorkspaceFolder: (path) => set({ workspaceFolder: path }),
   setExpandedFolders: (paths) => set({ expandedFolders: paths }),
   openFind: (mode = 'find', initialTerm = '') =>

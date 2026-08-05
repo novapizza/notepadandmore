@@ -356,6 +356,11 @@ export function MenuBar({
         },
         { separator: true, label: '' } as MenuItem,
         {
+          label: '&Notes',
+          shortcut: `${shortcutMod()}+Shift+N`,
+          action: () => useUIStore.getState().toggleNotesPanel(),
+        },
+        {
           label: '&AI Assistant',
           shortcut: `${shortcutMod()}+Shift+A`,
           action: () => {

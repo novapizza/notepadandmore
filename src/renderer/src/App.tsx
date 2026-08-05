@@ -52,6 +52,7 @@ import { useEditorStore } from './store/editorStore'
 import { useUIStore } from './store/uiStore'
 import { usePluginStore } from './store/pluginStore'
 import { useConfigStore } from './store/configStore'
+import { useNotesStore } from './store/notesStore'
 import { useAiStore } from './store/aiStore'
 import { AiBadge } from './components/AiAssistant/AiBadge'
 import { useFileOps, SessionData } from './hooks/useFileOps'
@@ -62,6 +63,8 @@ import { useBackupSnapshot } from './hooks/useBackupSnapshot'
 import { mintBackupFilename } from './utils/backupNaming'
 import { backupApi } from './utils/backupApi'
 import { editorRegistry } from './utils/editorRegistry'
+
+const toggleNotes = (): void => useUIStore.getState().toggleNotesPanel()
 
 export default function App() {
   const { activeId, buffers } = useEditorStore()
@@ -137,6 +140,23 @@ export default function App() {
         e.preventDefault()
         e.stopPropagation()
         useAiStore.getState().togglePanel()
+      }
+    }
+    document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => document.documentElement.removeEventListener('keydown', onKeyDown, { capture: true })
+  }, [])
+
+  // Toggle the Notes panel from the keyboard. Capture phase for the same reason
+  // as Quick Open and the assistant: while Monaco has focus the native menu
+  // accelerator alone gets swallowed. The !altKey guard keeps Mod+Alt+Shift+N
+  // free for a future binding.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = window.api.platform === 'darwin' ? e.metaKey : e.ctrlKey
+      if (mod && e.shiftKey && !e.altKey && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault()
+        e.stopPropagation()
+        toggleNotes()
       }
     }
     document.documentElement.addEventListener('keydown', onKeyDown, { capture: true })
@@ -219,6 +239,9 @@ export default function App() {
       const t = useConfigStore.getState().theme
       useUIStore.getState().setTheme(t)
     })()
+    // Sticky notes load independently — nothing renders them until the user
+    // opens the panel, so this must not gate first paint.
+    void useNotesStore.getState().load()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // What's New auto-open: after config is loaded AND any session restore
@@ -379,6 +402,7 @@ export default function App() {
     window.api.on('ui:toggle-statusbar', (...args) => useUIStore.getState().setShowStatusBar(args[0] as boolean, true))
     window.api.on('ui:toggle-sidebar', (...args) => useUIStore.getState().setShowSidebar(args[0] as boolean, true))
     window.api.on('ui:toggle-split-view', (...args) => useUIStore.getState().setSplitView(args[0] as boolean, true))
+    window.api.on('ui:toggle-notes', () => toggleNotes())
     window.api.on('ui:show-toast', (...args) => {
       useUIStore.getState().addToast(args[0] as string, (args[1] as 'info' | 'warn' | 'error') ?? 'info')
     })
@@ -498,6 +522,9 @@ export default function App() {
       if (typeof session?.sidebarVisible === 'boolean') {
         useUIStore.getState().setShowSidebar(session.sidebarVisible)
       }
+      if (typeof session?.notesVisible === 'boolean') {
+        useUIStore.getState().setShowNotes(session.notesVisible)
+      }
       // Mark the auto-open trigger ready: any restored buffers are now in
       // place, so the auto-open will append AFTER them (BR-002 + Test 6).
       setReadyForAutoOpen(true)
@@ -523,6 +550,10 @@ export default function App() {
         }
       }
       await useConfigStore.getState().save()
+      // Notes debounce at 500ms; flushing here closes the gap between the last
+      // keystroke and quit. Notes are NOT part of the unsaved-documents prompt
+      // above — they are never dirty and never block quit (BR-001).
+      await useNotesStore.getState().flush()
 
       // Final flush: write the latest contents of every dirty file-buffer to
       // its backup before we serialize the session. Skipping this would risk
@@ -602,6 +633,7 @@ export default function App() {
         workspaceFolder: uiState.workspaceFolder,
         sidebarVisible: uiState.showSidebar,
         sidebarPanel: uiState.sidebarPanel,
+        notesVisible: uiState.showNotes,
         expandedFolders: uiState.expandedFolders
       })
       window.api.send('app:close-confirmed')
@@ -634,6 +666,7 @@ export default function App() {
       window.api.off('ui:toggle-statusbar')
       window.api.off('ui:toggle-sidebar')
       window.api.off('ui:toggle-split-view')
+      window.api.off('ui:toggle-notes')
       window.api.off('ui:show-toast')
       window.api.off('tab:next')
       window.api.off('tab:prev')

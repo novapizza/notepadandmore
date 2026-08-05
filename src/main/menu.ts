@@ -524,6 +524,13 @@ export function buildMenu(win: BrowserWindow, recentFiles: string[] = []): void 
         },
         { type: 'separator' as const },
         {
+          // Like AI Assistant below, the renderer also binds this in the capture
+          // phase — the accelerator alone is swallowed while Monaco has focus.
+          label: 'Notes',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: () => win.webContents.send('ui:toggle-notes')
+        },
+        {
           // Ctrl/Cmd+Shift+A, not +I — Electron reserves +I for DevTools. The
           // renderer also binds this in the capture phase, since the accelerator
           // alone gets swallowed while Monaco has focus.
