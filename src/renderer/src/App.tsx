@@ -747,7 +747,7 @@ export default function App() {
                 <PanelGroup direction="horizontal" id="editor-preview-split" className="h-full">
                   <Panel id="editor-content" order={1} defaultSize={editorContentSize} minSize={20}>
                     <div className="flex flex-col h-full overflow-hidden">
-                      <TabBar onClose={closeBuffer} onNewFile={newFile} />
+                      <TabBar onClose={closeBuffer} onNewFile={newFile} onReload={(id) => void reloadBuffer(id)} />
                       <div className="flex flex-1 overflow-hidden relative">
                         {!activeId ? (
                           // No active tab: show WelcomeScreen even if inactive virtual

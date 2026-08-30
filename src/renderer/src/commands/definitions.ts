@@ -382,7 +382,19 @@ export const COMMANDS: CommandDef[] = [
     section: 'Search',
     defaultKey: 'Mod+F',
     keywords: 'search',
-    run: (ctx) => ui().openFind('find', selectionSeed(ctx))
+    run: (ctx) => {
+      // Ctrl+F pressed inside the Markdown preview (or with it fullscreen,
+      // where the editor is hidden) searches the rendered preview instead of
+      // the source — MarkdownPreviewPane listens for this event.
+      const el = document.activeElement
+      const previewFocused = !!(el instanceof Element && el.closest('[data-md-preview]'))
+      const previewFullscreen = ui().previewFullscreen && !!document.querySelector('[data-md-preview]')
+      if (previewFocused || previewFullscreen) {
+        window.dispatchEvent(new Event('md-preview:find'))
+        return
+      }
+      ui().openFind('find', selectionSeed(ctx))
+    }
   },
   {
     id: 'search.replace',

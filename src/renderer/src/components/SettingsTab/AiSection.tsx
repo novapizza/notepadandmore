@@ -108,6 +108,15 @@ export function AiSection(): React.ReactElement {
   }
 
   const modelOptions = liveModels.length > 0 ? liveModels : status?.defaultModels ?? []
+  // "Custom" mode swaps the dropdown for a free-text field, for model ids that
+  // aren't in the suggestion list yet (Google ships new ids constantly).
+  const [customModel, setCustomModel] = useState(false)
+  // The dropdown must always display the configured value, even one that came
+  // from an older default list or was typed in custom mode.
+  const selectOptions =
+    config.aiModel && !modelOptions.includes(config.aiModel)
+      ? [config.aiModel, ...modelOptions]
+      : modelOptions
 
   return (
     <div className="flex max-w-[560px] flex-col gap-4">
@@ -255,19 +264,37 @@ export function AiSection(): React.ReactElement {
         <h3 className="text-sm font-semibold text-foreground">Model &amp; behaviour</h3>
 
         <Row label="Model">
-          <input
-            list="ai-model-options"
-            className={cn(inputCls, 'max-w-[260px] font-mono')}
-            value={config.aiModel}
-            onChange={(e) => set('aiModel', e.target.value)}
-            placeholder="gemini-3.5-flash"
-            data-testid="ai-model-input"
-          />
-          <datalist id="ai-model-options">
-            {modelOptions.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
+          {customModel ? (
+            <input
+              className={cn(inputCls, 'max-w-[260px] font-mono')}
+              value={config.aiModel}
+              onChange={(e) => set('aiModel', e.target.value)}
+              placeholder="gemini-3.5-flash"
+              autoFocus
+              spellCheck={false}
+              data-testid="ai-model-input"
+            />
+          ) : (
+            <select
+              className={cn(inputCls, 'max-w-[260px] font-mono cursor-pointer')}
+              value={config.aiModel}
+              onChange={(e) => set('aiModel', e.target.value)}
+              data-testid="ai-model-select"
+            >
+              {selectOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            className="cursor-pointer rounded border border-border bg-transparent px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+            onClick={() => setCustomModel((v) => !v)}
+            title={customModel ? 'Pick from the suggested Gemini models' : 'Type a model id not in the list'}
+          >
+            {customModel ? 'Choose from list' : 'Custom…'}
+          </button>
         </Row>
         <p className="-mt-1 ml-[136px] text-xs text-muted-foreground">
           Flash models are the fast, low-cost choice for document work.{' '}

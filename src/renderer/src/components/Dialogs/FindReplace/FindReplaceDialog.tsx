@@ -13,6 +13,10 @@ type DialogTab = 'find' | 'replace' | 'findInFiles' | 'mark'
 
 const MARK_COLORS_CSS = ['#FF8000', '#00C864', '#0080FF', '#DC00DC', '#FFDC00']
 
+/** Status messages quote the search pattern; a pasted multi-hundred-character
+ *  pattern would otherwise blow the dialog layout apart. */
+const shortPattern = (p: string): string => (p.length > 60 ? `${p.slice(0, 60)}…` : p)
+
 // ─── History dropdown ────────────────────────────────────────────────────────
 interface HistoryDropdownProps {
   items: string[]
@@ -237,19 +241,19 @@ export function FindReplaceDialog() {
     const { match, current, total } = engine.findNext()
     setStatus(match
       ? { msg: `Match ${current} of ${total}`, type: 'ok' }
-      : { msg: `"${options.pattern}" not found.`, type: 'warn' })
+      : { msg: `"${shortPattern(options.pattern)}" not found.`, type: 'warn' })
   }
   const handleFindPrev = () => {
     const { match, current, total } = engine.findPrev()
     setStatus(match
       ? { msg: `Match ${current} of ${total}`, type: 'ok' }
-      : { msg: `"${options.pattern}" not found.`, type: 'warn' })
+      : { msg: `"${shortPattern(options.pattern)}" not found.`, type: 'warn' })
   }
   const handleCount = () => { const n = engine.countAll(); setStatus({ msg: `${n} match${n !== 1 ? 'es' : ''} found.`, type: n > 0 ? 'ok' : 'warn' }) }
   const handleFindAll = () => { engine.findAll(); setStatus({ msg: 'Results shown in Find Results panel.', type: 'ok' }) }
   const handleFindAllOpenDocs = () => { engine.findAllInOpenDocs(); setStatus({ msg: 'Results shown in Find Results panel.', type: 'ok' }) }
   const handleReplaceOne = () => { engine.replaceOne() }
-  const handleReplaceAll = () => { const n = engine.replaceAll(); setStatus({ msg: n > 0 ? `Replaced ${n} match${n !== 1 ? 'es' : ''}.` : `"${options.pattern}" not found.`, type: n > 0 ? 'ok' : 'warn' }) }
+  const handleReplaceAll = () => { const n = engine.replaceAll(); setStatus({ msg: n > 0 ? `Replaced ${n} match${n !== 1 ? 'es' : ''}.` : `"${shortPattern(options.pattern)}" not found.`, type: n > 0 ? 'ok' : 'warn' }) }
   const handleMarkAll = () => { engine.markAll(markStyleIndex) }
   const handleClearMarks = () => { engine.clearMarks(markStyleIndex); setStatus({ msg: 'Marks cleared.', type: 'none' }) }
   const handleClearAllMarks = () => { engine.clearMarks(); setStatus({ msg: 'All marks cleared.', type: 'none' }) }
@@ -502,7 +506,7 @@ export function FindReplaceDialog() {
         {/* Status bar */}
         <div className="px-3 py-1.5 border-t border-border min-h-[24px] text-base">
           {status.msg && (
-            <span className={cn(status.type === 'ok' && 'text-green-500', status.type === 'warn' && 'text-yellow-500')}>
+            <span className={cn('break-all', status.type === 'ok' && 'text-green-500', status.type === 'warn' && 'text-yellow-500')}>
               {status.msg}
             </span>
           )}

@@ -10,6 +10,21 @@ per-version notes in `src/renderer/src/components/WhatsNewTab/releaseNotes.tsx`.
 
 ## [Unreleased]
 
+### Added
+- **Search in Markdown Preview.** The preview pane has a search bar (magnifier button in the
+  header, or `Ctrl/Cmd+F` while the preview is focused or fullscreen) with match count,
+  Enter / Shift+Enter navigation, and live highlighting of every match in the rendered document.
+- **Reload from Disk** in the tab right-click menu. Dirty buffers ask for confirmation before
+  unsaved changes are discarded — the same confirmation now also guards *File ▸ Reload*.
+- **Model picker for the AI assistant.** Settings ▸ AI Assistant now offers the Gemini models as
+  a dropdown (populated live after *Test connection*), with a *Custom…* escape hatch for typing
+  model ids not in the list.
+
+### Fixed
+- Pasting a very long search term no longer breaks the Find & Replace dialog layout: status
+  messages and result toasts now truncate the quoted pattern to 60 characters and wrap instead of
+  overflowing the window.
+
 ## [1.6.5]
 
 ### Added

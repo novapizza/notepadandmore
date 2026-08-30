@@ -308,6 +308,16 @@
   .dark .markdown-body .hljs-variable,
   .dark .markdown-body .hljs-attr { color: #f07178; }
 
+  /* In-preview search matches (CSS Custom Highlight API — no DOM mutation).
+     Only color/background/text-decoration are valid inside ::highlight. */
+  ::highlight(md-preview-search) {
+    background-color: rgba(255, 200, 0, 0.35);
+  }
+  ::highlight(md-preview-search-active) {
+    background-color: rgba(255, 140, 0, 0.85);
+    color: #000;
+  }
+
   /* ── AI assistant chat bubbles (react-markdown output) ───────────────────────
      Tighter than .markdown-body: the panel is narrow and a transcript reads as
      a conversation, not a document, so headings stay small and margins stay

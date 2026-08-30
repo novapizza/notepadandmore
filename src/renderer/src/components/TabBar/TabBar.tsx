@@ -20,9 +20,11 @@ interface TabBarProps {
   /** Async — dirty buffers show a modal confirm before closing. */
   onClose?: (id: string) => void | Promise<void>
   onNewFile?: () => void
+  /** Re-read the buffer's file from disk (dirty buffers confirm first). */
+  onReload?: (id: string) => void
 }
 
-export const TabBar: React.FC<TabBarProps> = ({ onClose, onNewFile }) => {
+export const TabBar: React.FC<TabBarProps> = ({ onClose, onNewFile, onReload }) => {
   const { buffers, activeId, setActive } = useEditorStore()
 
   // VS Code-style preview toggles, shown next to the "+" button when the active
@@ -283,6 +285,10 @@ export const TabBar: React.FC<TabBarProps> = ({ onClose, onNewFile }) => {
                       </ContextMenuSub>
                     )}
                     <ContextMenuSeparator />
+                    {/* Untitled buffers have no on-disk source to reload from. */}
+                    <ContextMenuItem disabled={!buf.filePath} onClick={() => onReload?.(buf.id)}>
+                      Reload from Disk
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => copyPath(buf.id)}>Copy File Path</ContextMenuItem>
                     <ContextMenuItem onClick={() => revealInExplorer(buf.id)}>Reveal in Explorer</ContextMenuItem>
                   </>

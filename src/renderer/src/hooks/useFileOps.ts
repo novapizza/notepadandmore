@@ -499,6 +499,17 @@ export function useFileOps() {
     if (!buf?.filePath) return
     // Skip reload for ghost buffers — file will be loaded fresh on tab click
     if (!buf.loaded) return
+    // Reloading discards edits — confirm before throwing away unsaved work.
+    // (The external-change auto-reload path never reaches here dirty: App.tsx
+    // only auto-reloads clean buffers.)
+    if (buf.isDirty) {
+      const ok = await window.api.dialog.confirm(
+        `Reload '${buf.title}' from disk?`,
+        'Your unsaved changes will be lost.',
+        'Reload'
+      )
+      if (!ok) return
+    }
     const result = await window.api.file.read(buf.filePath)
     if (result.error) { addToast(`Reload failed: ${result.error}`, 'error'); return }
     buf.model?.setValue(result.content)

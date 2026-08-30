@@ -42,6 +42,38 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ),
     highlights: [
       {
+        title: 'Search inside the Markdown preview',
+        body: (
+          <>
+            The preview pane now has its own find bar: click the magnifier in the preview header, or press{' '}
+            <span className="font-mono text-sm">Ctrl/Cmd+F</span> while the preview is focused (or
+            fullscreen). Every match in the rendered document is highlighted, with a match counter and{' '}
+            <span className="font-mono text-sm">Enter</span> /{' '}
+            <span className="font-mono text-sm">Shift+Enter</span> to jump between them.
+          </>
+        )
+      },
+      {
+        title: 'Reload from Disk in the tab menu',
+        body: (
+          <>
+            Right-click any file tab to re-read it from disk. If the buffer has unsaved changes, NovaPad
+            asks before discarding them — the same guard now also applies to <em>File ▸ Reload</em>.
+          </>
+        )
+      },
+      {
+        title: 'Pick the Gemini model from a list',
+        body: (
+          <>
+            <strong>Settings ▸ AI Assistant</strong> now offers the model as a dropdown. Run{' '}
+            <em>Test connection</em> and it fills with the models your key can actually use; a{' '}
+            <em>Custom…</em> button still lets you type any model id by hand. Also fixed: pasting a very
+            long search term no longer breaks the Find &amp; Replace dialog layout.
+          </>
+        )
+      },
+      {
         title: 'Command palette — one search box for every command',
         body: (
           <>

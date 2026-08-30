@@ -117,6 +117,9 @@ const WORD_SEPARATORS = '`~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?'
 /** Monaco defaults findMatches to 999; use this to return every match. */
 const NO_FIND_MATCH_LIMIT = Number.MAX_SAFE_INTEGER
 
+/** Toasts quote the pattern; cap it so a pasted wall of text can't flood the UI. */
+const shortPattern = (p: string): string => (p.length > 60 ? `${p.slice(0, 60)}…` : p)
+
 // ─── Main hook ────────────────────────────────────────────────────────────────
 export function useSearchEngine() {
   const { options, pushPatternHistory, pushReplaceHistory, setFindResults, setIsSearching } = useSearchStore()
@@ -494,7 +497,7 @@ export function useSearchEngine() {
 
       const matches = findAllInModel(model, opts, searchRange)
       if (matches.length === 0) {
-        addToast(`"${opts.pattern}" not found.`, 'warn')
+        addToast(`"${shortPattern(opts.pattern)}" not found.`, 'warn')
         return 0
       }
 
@@ -532,7 +535,7 @@ export function useSearchEngine() {
 
       const matches = findAllInModel(model, opts)
       if (matches.length === 0) {
-        addToast(`"${opts.pattern}" not found.`, 'warn')
+        addToast(`"${shortPattern(opts.pattern)}" not found.`, 'warn')
         return
       }
 
@@ -582,7 +585,7 @@ export function useSearchEngine() {
 
       const matches = findAllInModel(model, opts)
       if (matches.length === 0) {
-        addToast(`"${opts.pattern}" not found.`, 'warn')
+        addToast(`"${shortPattern(opts.pattern)}" not found.`, 'warn')
         return
       }
 
